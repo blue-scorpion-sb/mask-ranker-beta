@@ -8,7 +8,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
 
-    <title>面膜戰績表 Cloud ✨</title> 
+    <title>Mask Ranker beta ✨</title> 
 
     <script src="https://cdn.tailwindcss.com"></script> 
 
@@ -16,89 +16,87 @@
 
     <style> 
 
-        .quadrant-bg { background-size: 20px 20px; background-image: radial-gradient(circle, #fbcfe8 1px, transparent 1px); } 
+        /* 基礎字體調大 */ 
+
+        body { font-size: 1.15rem; }  
+
+        .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.5px, transparent 1.5px); } 
 
         .mask-node { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 30; cursor: pointer; -webkit-tap-highlight-color: transparent; } 
 
          
 
-        /* 標準 Tooltip (向上彈) */ 
-
         .tooltip {  
 
-            position: absolute; bottom: 130%; width: 85vw; max-width: 240px; background: rgba(15, 23, 42, 0.95);  
+            position: absolute; bottom: 130%; width: 85vw; max-width: 280px; background: rgba(15, 23, 42, 0.98);  
 
-            backdrop-filter: blur(12px); color: white; padding: 1rem; border-radius: 1rem;  
+            backdrop-filter: blur(12px); color: white; padding: 1.5rem; border-radius: 1.5rem;  
 
             opacity: 0; visibility: hidden; transition: all 0.2s ease; z-index: 200; pointer-events: none; 
 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); 
 
         } 
 
-        /* 反轉 Tooltip (向下彈 - 當太近頂部時用) */ 
-
         .tooltip-down { bottom: auto; top: 130%; } 
-
- 
 
         .mask-node:hover .tooltip, .mask-node:active .tooltip { opacity: 1; visibility: visible; pointer-events: auto; } 
 
          
 
-        .outer-label { font-size: 12px; font-weight: 900; color: #f472b6; position: absolute; white-space: nowrap; z-index: 40;} 
+        .outer-label { font-size: 15px; font-weight: 900; color: #f472b6; position: absolute; white-space: nowrap; z-index: 40;} 
 
-        .axis-label { font-size: 10px; font-weight: 800; color: #94a3b8; position: absolute; text-transform: uppercase; letter-spacing: 0.1em; z-index: 50; } 
+        .axis-label { font-size: 12px; font-weight: 800; color: #94a3b8; position: absolute; text-transform: uppercase; letter-spacing: 0.1em; z-index: 50; } 
 
-        .btn-action { pointer-events: auto; cursor: pointer; padding: 4px; } 
+        .btn-action { pointer-events: auto; cursor: pointer; padding: 6px; font-size: 1.2rem; } 
 
     </style> 
 
 </head> 
 
-<body class="bg-pink-50/30 min-h-screen pb-20 font-sans text-slate-800 overflow-x-hidden"> 
+<body class="bg-pink-50/30 min-h-screen pb-20 font-sans text-slate-800 overflow-x-hidden text-lg"> 
 
  
 
     <div class="max-w-7xl mx-auto p-4 md:p-6 pt-6"> 
 
-        <header class="flex justify-between items-center mb-6 border-b-2 border-pink-200 pb-4"> 
+        <header class="flex justify-between items-center mb-8 border-b-2 border-pink-200 pb-4"> 
 
-            <div class="flex items-center gap-3"> 
+            <div class="flex items-center gap-4"> 
 
-                <button onclick="toggleSettings()" class="bg-white p-2 rounded-xl shadow-sm border border-pink-100 text-lg">⚙️</button> 
+                <button onclick="toggleSettings()" class="bg-white p-3 rounded-xl shadow-sm border border-pink-100 text-2xl">⚙️</button> 
 
-                <h1 class="text-2xl font-black text-pink-600 tracking-tighter italic">MASK<span class="text-indigo-950">CLOUD</span></h1> 
+                <h1 class="text-3xl font-black text-pink-600 tracking-tighter italic">Mask Ranker <span class="text-sm font-bold text-slate-400 not-italic">beta</span></h1> 
 
             </div> 
 
-            <div id="displayUserName" class="text-[10px] bg-white px-3 py-1 rounded-full border border-pink-200 font-bold text-pink-500 truncate max-w-[120px]">載入中...</div> 
+            <div id="displayUserName" class="text-xs bg-white px-4 py-2 rounded-full border border-pink-200 font-bold text-pink-500 truncate max-w-[150px]">👤 載入中...</div> 
 
         </header> 
 
  
 
-        <div id="settingsPanel" class="hidden bg-indigo-950 text-white p-5 rounded-[2rem] mb-6 shadow-2xl border-2 border-indigo-400 animate-in slide-in-from-top duration-300"> 
+        <div id="settingsPanel" class="hidden bg-indigo-950 text-white p-6 rounded-[2rem] mb-8 shadow-2xl border-4 border-indigo-400"> 
 
-            <div class="grid grid-cols-2 gap-4"> 
+            <div class="grid grid-cols-2 gap-6"> 
 
-                <div class="space-y-2"> 
+                <div class="space-y-3"> 
 
-                    <p class="text-pink-400 text-xs font-bold">💰 價錢設定</p> 
+                    <p class="text-pink-400 text-sm font-bold uppercase tracking-widest">💰 價錢上限/分界</p> 
 
-                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-lg p-2 text-sm" value="16" oninput="renderCurrentData()"> 
+                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="16" oninput="renderCurrentData()"> 
 
-                    <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-lg p-2 text-sm" value="8" oninput="renderCurrentData()"> 
+                    <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="8" oninput="renderCurrentData()"> 
 
                 </div> 
 
-                <div class="space-y-2"> 
+                <div class="space-y-3"> 
 
-                    <p class="text-pink-400 text-xs font-bold">⭐ 評分設定</p> 
+                    <p class="text-pink-400 text-sm font-bold uppercase tracking-widest">⭐ 評分上限/分界</p> 
 
-                    <input type="number" id="limitRating" class="w-full bg-white/10 rounded-lg p-2 text-sm" value="10" oninput="renderCurrentData()"> 
+                    <input type="number" id="limitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="10" oninput="renderCurrentData()"> 
 
-                    <input type="number" id="splitRating" class="w-full bg-white/10 rounded-lg p-2 text-sm" value="5" oninput="renderCurrentData()"> 
+                    <input type="number" id="splitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="5" oninput="renderCurrentData()"> 
 
                 </div> 
 
@@ -108,35 +106,35 @@
 
  
 
-        <div class="flex flex-col lg:flex-row gap-8"> 
+        <div class="flex flex-col lg:flex-row gap-12"> 
 
             <div class="lg:w-1/3 order-2 lg:order-1"> 
 
-                <div id="inputCard" class="bg-white p-6 rounded-[2rem] shadow-lg border border-pink-100"> 
+                <div id="inputCard" class="bg-white p-8 rounded-[2.5rem] shadow-xl border-2 border-pink-100"> 
 
-                    <h2 id="formTitle" class="text-lg font-bold mb-4 text-indigo-950 italic">🚀 評測面膜</h2> 
+                    <h2 id="formTitle" class="text-2xl font-black mb-6 text-indigo-950 italic">🚀 評測面膜</h2> 
 
-                    <div class="space-y-3"> 
+                    <div class="space-y-4"> 
 
-                        <input type="text" id="mName" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none border border-transparent focus:border-pink-200" placeholder="🏷️ 名稱"> 
+                        <input type="text" id="mName" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none border-2 border-transparent focus:border-pink-200" placeholder="🏷️ 面膜全名"> 
 
-                        <div class="grid grid-cols-2 gap-3"> 
+                        <div class="grid grid-cols-2 gap-4"> 
 
-                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="💰 價錢"> 
+                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none" placeholder="💰 價錢"> 
 
-                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="⭐ 1-10"> 
+                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none" placeholder="⭐ 評分 1-10"> 
 
                         </div> 
 
-                        <input type="text" id="mComment" maxlength="20" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="💬 評語 (20字)"> 
+                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none" placeholder="💬 簡短評語 (20字)"></textarea> 
 
-                        <input type="file" id="mImg" accept="image/*" class="text-[10px] w-full"> 
+                        <input type="file" id="mImg" accept="image/*" class="text-sm w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-pink-50 file:text-pink-700"> 
 
-                        <div class="flex gap-2"> 
+                        <div class="flex gap-3 pt-2"> 
 
-                            <button onclick="saveData()" id="saveBtn" class="flex-1 bg-indigo-950 text-white font-black py-3 rounded-xl shadow-lg">發布 ☁️</button> 
+                            <button onclick="saveData()" id="saveBtn" class="flex-1 bg-indigo-950 text-white font-black py-5 rounded-2xl shadow-lg active:scale-95 transition-transform text-xl">發布評測 ☁️</button> 
 
-                            <button onclick="cancelEdit()" id="cancelBtn" class="hidden px-4 bg-slate-100 rounded-xl text-xs">X</button> 
+                            <button onclick="cancelEdit()" id="cancelBtn" class="hidden px-6 bg-slate-100 rounded-2xl font-bold text-slate-400">X</button> 
 
                         </div> 
 
@@ -150,29 +148,29 @@
 
             <div class="lg:w-2/3 order-1 lg:order-2"> 
 
-                <div class="relative px-4 pt-4 pb-8"> 
+                <div class="relative px-4 pt-6 pb-10"> 
 
-                    <div class="outer-label -top-2 left-4 text-red-500">💸 貴/廢</div> 
+                    <div class="outer-label -top-2 left-6 text-red-500">💸 浪費金錢</div> 
 
-                    <div class="outer-label -top-2 right-4 text-emerald-600">💎 貴婦</div> 
+                    <div class="outer-label -top-2 right-6 text-emerald-600">💎 貴婦首選</div> 
 
-                    <div class="outer-label -bottom-2 left-4 text-slate-500">💤 粗用</div> 
+                    <div class="outer-label -bottom-2 left-6 text-slate-500">💤 平價粗用</div> 
 
-                    <div class="outer-label -bottom-2 right-4 text-blue-600">🔥 正嘢</div> 
+                    <div class="outer-label -bottom-2 right-6 text-blue-600">🔥 性價比王</div> 
 
  
 
-                    <div class="relative bg-white rounded-[2.5rem] shadow-xl border-4 border-white overflow-visible aspect-square ring-2 ring-pink-100"> 
+                    <div class="relative bg-white rounded-[3rem] shadow-2xl border-8 border-white overflow-visible aspect-square ring-4 ring-pink-100/50"> 
 
-                        <div id="gridLayer" class="absolute inset-0 quadrant-bg rounded-[2rem] overflow-hidden"> 
+                        <div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] overflow-hidden quadrant-bg"> 
 
-                            <div id="yLine" class="absolute h-full w-[1px] bg-pink-400/40"></div> 
+                            <div id="yLine" class="absolute h-full w-[2px] bg-pink-400/30"></div> 
 
-                            <div id="xLine" class="absolute w-full h-[1px] bg-pink-400/40"></div> 
+                            <div id="xLine" class="absolute w-full h-[2px] bg-pink-400/30"></div> 
 
                         </div> 
 
-                        <div id="chartArea" class="absolute inset-0 z-30 p-4"></div> 
+                        <div id="chartArea" class="absolute inset-0 z-30 p-6"></div> 
 
                     </div> 
 
@@ -187,8 +185,6 @@
  
 
     <script> 
-
-        // --- 請確保在此填入你的 Supabase 資料 --- 
 
         const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co ';  
 
@@ -206,7 +202,7 @@
 
             if (!myName) { 
 
-                myName = prompt("請輸入你的名字：") || "面膜美眉"; 
+                myName = prompt("請輸入你的名字：") || "面膜大師"; 
 
                 localStorage.setItem('mask_username', myName); 
 
@@ -266,7 +262,7 @@
 
                 const node = document.createElement('div'); 
 
-                node.className = "mask-node absolute w-12 h-12 -ml-6 -mt-6 pointer-events-auto"; 
+                node.className = "mask-node absolute w-14 h-14 -ml-7 -mt-7 pointer-events-auto"; 
 
                 node.style.left = `${Math.max(8, Math.min(x, 92))}%`; 
 
@@ -274,19 +270,11 @@
 
  
 
-                // 1. 水平避位 
-
                 let ttStyle = "left: 50%; transform: translateX(-50%);"; 
 
                 if (x > 65) ttStyle = "right: -10px; left: auto; transform: translateX(0);"; 
 
                 if (x < 35) ttStyle = "left: -10px; transform: translateX(0);"; 
-
- 
-
-                // 2. 垂直避位 (新功能) 
-
-                // 如果 y < 25 (即係太近頂部), 加 'tooltip-down' class 令佢向下彈 
 
                 const verticalClass = y < 25 ? "tooltip-down" : ""; 
 
@@ -294,19 +282,19 @@
 
                 node.innerHTML = ` 
 
-                    <div class="w-full h-full rounded-xl border-2 shadow-sm overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-400 ring-2 ring-pink-50' : 'border-indigo-400'}"> 
+                    <div class="w-full h-full rounded-2xl border-[3px] shadow-lg overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-500 ring-4 ring-pink-100' : 'border-indigo-400'}"> 
 
-                        ${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-bold text-slate-300 uppercase">${m.name.substring(0,1)}</div>`} 
+                        ${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-200 text-2xl uppercase">${m.name.substring(0,1)}</div>`} 
 
                     </div> 
 
                     <div class="tooltip ${verticalClass}" style="${ttStyle}"> 
 
-                        <div class="flex justify-between items-start mb-2"> 
+                        <div class="flex justify-between items-start mb-3"> 
 
-                            <p class="font-black text-pink-400 text-sm truncate uppercase pr-2">${m.name}</p> 
+                            <p class="font-black text-pink-400 text-xl leading-tight break-words whitespace-normal pr-4 flex-1">${m.name}</p> 
 
-                            <div class="flex gap-1 shrink-0"> 
+                            <div class="flex gap-2 shrink-0"> 
 
                                 <button onclick="startEdit(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price}, ${m.rating}, '', '${(m.comment || '').replace(/'/g, "\\'")}')" class="btn-action">✏️</button> 
 
@@ -316,17 +304,17 @@
 
                         </div> 
 
-                        <div class="grid grid-cols-2 gap-2 text-[10px] mb-2 border-b border-white/10 pb-2"> 
+                        <div class="grid grid-cols-2 gap-3 text-lg mb-4 border-b border-white/10 pb-3"> 
 
                             <div><span class="text-white/40">💰</span> $${m.price}</div> 
 
-                            <div><span class="text-white/40">⭐</span> ${m.rating}</div> 
+                            <div><span class="text-white/40">⭐</span> ${m.rating}/10</div> 
 
                         </div> 
 
-                        <p class="text-[10px] italic text-slate-300 leading-tight break-words">"${m.comment || '...'}"</p> 
+                        <p class="text-base italic text-slate-200 leading-relaxed break-words">"${m.comment || '冇評語'}"</p> 
 
-                        <p class="text-[9px] text-white/20 mt-1 text-right truncate">by ${m.user_name}</p> 
+                        <p class="text-xs text-white/20 mt-3 text-right">by ${m.user_name}</p> 
 
                     </div> 
 
@@ -352,9 +340,9 @@
 
             const imgFile = document.getElementById('mImg').files[0]; 
 
-            if (!name || isNaN(price) || isNaN(rating)) return alert("填好資料先！💅"); 
+            if (!name || isNaN(price) || isNaN(rating)) return alert("請填好名稱、價錢同評分先！💅"); 
 
-            const btn = document.getElementById('saveBtn'); btn.disabled = true; 
+            const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.innerText = "上傳中..."; 
 
             try { 
 
@@ -368,7 +356,7 @@
 
                 cancelEdit(); await loadData(); 
 
-            } catch (err) { alert(err.message); } finally { btn.disabled = false; } 
+            } catch (err) { alert(err.message); } finally { btn.disabled = false; btn.innerText = "發布評測 ☁️"; } 
 
         } 
 
@@ -388,9 +376,11 @@
 
             document.getElementById('mRating').value = rating; document.getElementById('mComment').value = comment || ''; 
 
-            document.getElementById('formTitle').innerText = "✏️ 修改中"; document.getElementById('saveBtn').innerText = "更新"; 
+            document.getElementById('formTitle').innerText = "✏️ 編輯評測"; document.getElementById('saveBtn').innerText = "更新資料 💾"; 
 
             document.getElementById('cancelBtn').classList.remove('hidden'); 
+
+            window.scrollTo({ top: document.getElementById('inputCard').offsetTop - 20, behavior: 'smooth' }); 
 
         } 
 
@@ -400,7 +390,7 @@
 
             editingId = null; ["mName", "mPrice", "mRating", "mComment", "mImg"].forEach(id => document.getElementById(id).value = ''); 
 
-            document.getElementById('formTitle').innerText = "🚀 評測面膜"; document.getElementById('saveBtn').innerText = "發布 ☁️"; 
+            document.getElementById('formTitle').innerText = "🚀 評測面膜"; document.getElementById('saveBtn').innerText = "發布評測 ☁️"; 
 
             document.getElementById('cancelBtn').classList.add('hidden'); 
 
