@@ -22,47 +22,53 @@
 
          
 
-        /* 基本粒點層級 */ 
+        /* 基礎層級設定 */ 
 
-        .mask-node { transition: all 0.2s ease; z-index: 30; cursor: pointer; -webkit-tap-highlight-color: transparent; } 
+        .outer-label { font-size: 15px; font-weight: 900; color: #f472b6; position: absolute; white-space: nowrap; z-index: 1; pointer-events: none;} 
+
+        .axis-label { font-size: 12px; font-weight: 800; color: #94a3b8; position: absolute; text-transform: uppercase; z-index: 1; pointer-events: none;} 
+
+ 
+
+        /* 圖表主容器必須高過 labels */ 
+
+        .chart-container { z-index: 10; position: relative; } 
+
+ 
+
+        .mask-node { transition: all 0.2s ease; z-index: 20; cursor: pointer; -webkit-tap-highlight-color: transparent; } 
 
          
 
-        /* 啟動狀態：層級必須最高，高過所有 labels (z-index 40) */ 
+        /* 當啟動時，層級直接衝上最高 */ 
 
         .mask-node.active-node { z-index: 999 !important; } 
 
-        .mask-node.active-node > div:first-child { transform: scale(1.15); border-color: #ec4899; box-shadow: 0 0 20px rgba(236, 72, 153, 0.3); } 
+        .mask-node.active-node > div:first-child { transform: scale(1.15); border-color: #ec4899; box-shadow: 0 0 25px rgba(236, 72, 153, 0.4); } 
 
  
 
         .tooltip {  
 
-            position: absolute; bottom: 130%; width: 85vw; max-width: 280px; background: rgba(15, 23, 42, 0.98);  
+            position: absolute; bottom: 135%; width: 85vw; max-width: 280px; background: rgba(15, 23, 42, 0.98);  
 
-            backdrop-filter: blur(12px); color: white; padding: 1.5rem; border-radius: 1.5rem;  
+            backdrop-filter: blur(15px); color: white; padding: 1.5rem; border-radius: 1.5rem;  
 
             opacity: 0; visibility: hidden; transition: all 0.2s ease; pointer-events: none; 
 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.15); 
 
         } 
 
-        .tooltip-down { bottom: auto; top: 130%; } 
-
-         
-
-        /* 只有當 active-node 時才顯示 */ 
+        .tooltip-down { bottom: auto; top: 135%; } 
 
         .active-node .tooltip { opacity: 1; visibility: visible; pointer-events: auto; } 
 
          
 
-        .outer-label { font-size: 15px; font-weight: 900; color: #f472b6; position: absolute; white-space: nowrap; z-index: 40; pointer-events: none;} 
+        .btn-action { pointer-events: auto; cursor: pointer; padding: 10px; font-size: 1.4rem; transition: transform 0.1s; } 
 
-        .axis-label { font-size: 12px; font-weight: 800; color: #94a3b8; position: absolute; text-transform: uppercase; z-index: 50; pointer-events: none;} 
-
-        .btn-action { pointer-events: auto; cursor: pointer; padding: 8px; font-size: 1.3rem; } 
+        .btn-action:active { transform: scale(0.9); } 
 
     </style> 
 
@@ -74,11 +80,11 @@
 
     <div class="max-w-7xl mx-auto p-4 md:p-6 pt-6"> 
 
-        <header class="flex justify-between items-center mb-8 border-b-2 border-pink-200 pb-4"> 
+        <header class="flex justify-between items-center mb-10 border-b-2 border-pink-200 pb-4"> 
 
             <div class="flex items-center gap-4"> 
 
-                <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white p-3 rounded-xl shadow-sm border border-pink-100 text-2xl">⚙️</button> 
+                <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white p-3 rounded-xl shadow-sm border border-pink-100 text-2xl active:bg-pink-50">⚙️</button> 
 
                 <h1 class="text-3xl font-black text-pink-600 tracking-tighter italic">Mask Ranker <span class="text-sm font-bold text-slate-400 not-italic">beta</span></h1> 
 
@@ -90,7 +96,7 @@
 
  
 
-        <div id="settingsPanel" class="hidden bg-indigo-950 text-white p-6 rounded-[2rem] mb-8 shadow-2xl border-4 border-indigo-400" onclick="event.stopPropagation()"> 
+        <div id="settingsPanel" class="hidden bg-indigo-950 text-white p-6 rounded-[2.5rem] mb-8 shadow-2xl border-4 border-indigo-400" onclick="event.stopPropagation()"> 
 
             <div class="grid grid-cols-2 gap-6"> 
 
@@ -98,9 +104,9 @@
 
                     <p class="text-pink-400 text-sm font-bold uppercase tracking-widest">💰 價錢上限/分界</p> 
 
-                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="16" oninput="renderCurrentData()"> 
+                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none focus:ring-2 ring-pink-500" value="16" oninput="renderCurrentData()"> 
 
-                    <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="8" oninput="renderCurrentData()"> 
+                    <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="8" oninput="renderCurrentData()"> 
 
                 </div> 
 
@@ -108,9 +114,9 @@
 
                     <p class="text-pink-400 text-sm font-bold uppercase tracking-widest">⭐ 評分上限/分界</p> 
 
-                    <input type="number" id="limitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="10" oninput="renderCurrentData()"> 
+                    <input type="number" id="limitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="10" oninput="renderCurrentData()"> 
 
-                    <input type="number" id="splitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg" value="5" oninput="renderCurrentData()"> 
+                    <input type="number" id="splitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="5" oninput="renderCurrentData()"> 
 
                 </div> 
 
@@ -134,19 +140,19 @@
 
                         <div class="grid grid-cols-2 gap-4"> 
 
-                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none" placeholder="💰 價錢"> 
+                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none focus:border-pink-200 border-2 border-transparent" placeholder="💰 價錢"> 
 
-                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none" placeholder="⭐ 評分1-10"> 
+                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none focus:border-pink-200 border-2 border-transparent" placeholder="⭐ 評分1-10"> 
 
                         </div> 
 
-                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none" placeholder="💬 短評 (20字)"></textarea> 
+                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none focus:border-pink-200 border-2 border-transparent" placeholder="💬 短評 (20字)"></textarea> 
 
                         <input type="file" id="mImg" accept="image/*" class="text-sm w-full"> 
 
                         <div class="flex gap-3 pt-2"> 
 
-                            <button onclick="saveData()" id="saveBtn" class="flex-1 bg-indigo-950 text-white font-black py-5 rounded-2xl shadow-lg text-xl">發布評測 ☁️</button> 
+                            <button onclick="saveData()" id="saveBtn" class="flex-1 bg-indigo-950 text-white font-black py-5 rounded-2xl shadow-lg text-xl active:scale-95 transition-all">發布評測 ☁️</button> 
 
                             <button onclick="cancelEdit()" id="cancelBtn" class="hidden px-6 bg-slate-100 rounded-2xl font-bold text-slate-400">X</button> 
 
@@ -162,19 +168,19 @@
 
             <div class="lg:w-2/3 order-1 lg:order-2"> 
 
-                <div class="relative px-4 pt-6 pb-10"> 
+                <div class="relative px-4 pt-8 pb-12"> 
 
-                    <div class="outer-label -top-2 left-6 text-red-500">💸 貴/難用</div> 
+                    <div class="outer-label -top-1 left-6 text-red-500">💸 浪費金錢</div> 
 
-                    <div class="outer-label -top-2 right-6 text-emerald-600">💎 貴婦首選</div> 
+                    <div class="outer-label -top-1 right-6 text-emerald-600">💎 貴婦首選</div> 
 
-                    <div class="outer-label -bottom-2 left-6 text-slate-500">💤 粗用</div> 
+                    <div class="outer-label -bottom-1 left-6 text-slate-500">💤 平價粗用</div> 
 
-                    <div class="outer-label -bottom-2 right-6 text-blue-600">🔥 正嘢</div> 
+                    <div class="outer-label -bottom-1 right-6 text-blue-600">🔥 性價比王</div> 
 
  
 
-                    <div class="relative bg-white rounded-[3rem] shadow-2xl border-8 border-white aspect-square ring-4 ring-pink-100/50"> 
+                    <div class="chart-container relative bg-white rounded-[3rem] shadow-2xl border-8 border-white aspect-square ring-4 ring-pink-100/50"> 
 
                         <div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] overflow-hidden quadrant-bg"> 
 
@@ -200,7 +206,7 @@
 
     <script> 
 
-        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co ';  
+        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co';  
 
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo '; 
 
@@ -216,7 +222,7 @@
 
             if (!myName) { 
 
-                myName = prompt("請輸入你的名字：") || "面膜博主"; 
+                myName = prompt("請輸入你的名字：") || "面膜大師"; 
 
                 localStorage.setItem('mask_username', myName); 
 
@@ -250,7 +256,7 @@
 
  
 
-        function toggleTooltip(event, nodeId) { 
+        function toggleTooltip(event) { 
 
             event.stopPropagation(); 
 
@@ -306,7 +312,7 @@
 
                 node.style.top = `${Math.max(8, Math.min(y, 92))}%`; 
 
-                node.onclick = (e) => toggleTooltip(e, m.id); 
+                node.onclick = toggleTooltip; 
 
  
 
@@ -330,7 +336,7 @@
 
                     <div class="tooltip ${verticalClass}" style="${ttStyle}" onclick="event.stopPropagation()"> 
 
-                        <div class="flex justify-between items-start mb-3"> 
+                        <div class="flex justify-between items-start mb-4"> 
 
                             <p class="font-black text-pink-400 text-xl leading-tight break-words whitespace-normal pr-4 flex-1">${m.name}</p> 
 
@@ -352,9 +358,13 @@
 
                         </div> 
 
-                        <p class="text-base italic text-slate-200 leading-relaxed break-words">"${m.comment || '冇評語'}"</p> 
+                        <div class="bg-white/5 p-3 rounded-xl"> 
 
-                        <p class="text-xs text-white/20 mt-3 text-right">by ${m.user_name}</p> 
+                            <p class="text-base italic text-slate-100 leading-relaxed break-words">"${m.comment || '冇評語'}"</p> 
+
+                        </div> 
+
+                        <p class="text-xs text-white/20 mt-4 text-right">by ${m.user_name}</p> 
 
                     </div> 
 
@@ -382,7 +392,7 @@
 
             if (!name || isNaN(price) || isNaN(rating)) return alert("請填好名稱、價錢同評分！💅"); 
 
-            const btn = document.getElementById('saveBtn'); btn.disabled = true; 
+            const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.innerText = "上傳中..."; 
 
             try { 
 
@@ -396,13 +406,15 @@
 
                 cancelEdit(); await loadData(); 
 
-            } catch (err) { alert(err.message); } finally { btn.disabled = false; } 
+            } catch (err) { alert(err.message); } finally { btn.disabled = false; btn.innerText = "發布評測 ☁️"; } 
 
         } 
 
  
 
         async function deleteItem(id, name) { 
+
+            event.stopPropagation(); 
 
             if (confirm(`確定刪除「${name}」？`)) { await client.from('masks').delete().eq('id', id); await loadData(); } 
 
