@@ -30,7 +30,31 @@
 
         .mask-node.active-node > div:first-child { transform: scale(1.15); border-color: #ec4899; box-shadow: 0 0 25px rgba(236, 72, 153, 0.4); } 
 
- 
+ .axis-label {  
+
+    font-size: 11px;  
+
+    font-weight: 800;  
+
+    color: #f472b6; /* 襯返條粉紅線 */ 
+
+    position: absolute;  
+
+    text-transform: uppercase;  
+
+    z-index: 50;  
+
+    pointer-events: none; 
+
+    background: rgba(255, 255, 255, 0.8);  
+
+    padding: 2px 5px; 
+
+    border-radius: 4px; 
+
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+
+} 
 
         .tooltip {  
 
@@ -262,22 +286,37 @@
 
             const area = document.getElementById('chartArea'); 
 
-            area.innerHTML = ''; 
+    area.innerHTML = ''; 
 
-            const limitP = parseFloat(document.getElementById('limitPrice').value) || 16; 
+     
 
-            const limitR = parseFloat(document.getElementById('limitRating').value) || 10; 
+    const limitP = parseFloat(document.getElementById('limitPrice').value) || 10; 
 
-            const splitP = parseFloat(document.getElementById('splitPrice').value) || 8; 
+    const limitR = parseFloat(document.getElementById('limitRating').value) || 10; 
 
-            const splitR = parseFloat(document.getElementById('splitRating').value) || 5; 
+    const splitP = parseFloat(document.getElementById('splitPrice').value) || 5; 
+
+    const splitR = parseFloat(document.getElementById('splitRating').value) || 5; 
 
  
 
-            document.getElementById('yLine').style.left = `${((splitR - 1) / (limitR - 1)) * 100}%`; 
+    const xPct = ((splitR - 1) / (limitR - 1)) * 100; 
 
-            document.getElementById('xLine').style.top = `${(1 - (splitP / limitP)) * 100}%`; 
+    const yPct = (1 - (splitP / limitP)) * 100; 
 
+ 
+
+            document.getElementById('yLine').style.left = `${xPct}%`; 
+
+    document.getElementById('xLine').style.top = `${yPct}%`; 
+
+            area.insertAdjacentHTML('beforeend', ` 
+
+        <div class="axis-label" style="left: ${xPct}%; top: -8px; transform: translateX(-50%);">⭐ ${splitR}</div> 
+
+        <div class="axis-label" style="right: -8px; top: ${yPct}%; transform: translateY(-50%);">$${splitP}</div> 
+
+    `); 
  
 
             cachedData.forEach(m => { 
@@ -609,5 +648,6 @@ function compressImageToBlob(file) {
 </body> 
 
 </html> 
+
 
 
