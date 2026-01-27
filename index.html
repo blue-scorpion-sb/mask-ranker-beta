@@ -360,37 +360,141 @@
 
         async function saveData() { 
 
-            const name = document.getElementById('mName').value; 
+    const name = document.getElementById('mName').value; 
 
-            const price = parseFloat(document.getElementById('mPrice').value); 
+    const price = parseFloat(document.getElementById('mPrice').value); 
 
-            const rating = parseFloat(document.getElementById('mRating').value); 
+    const rating = parseFloat(document.getElementById('mRating').value); 
 
-            const source = document.getElementById('mSource').value; 
+    const source = document.getElementById('mSource').value; 
 
-            const comment = document.getElementById('mComment').value; 
+    const comment = document.getElementById('mComment').value; 
 
-            const imgFile = document.getElementById('mImg').files[0]; 
+    const imgFile = document.getElementById('mImg').files[0]; 
 
-            if (!name || isNaN(price) || isNaN(rating)) return alert("請填寫必要資料！💅"); 
+ 
 
-            const btn = document.getElementById('saveBtn'); btn.disabled = true; 
+    if (!name || isNaN(price) || isNaN(rating)) return alert("填好資料先！💅"); 
 
-            try { 
+     
 
-                let payload = { name, price, rating, source, comment, user_name: myName }; 
+    const btn = document.getElementById('saveBtn'); 
 
-                if (imgFile) payload.img_url = await new Promise(r => { const f = new FileReader(); f.onload = e => r(e.target.result); f.readAsDataURL(imgFile); }); 
+    btn.disabled = true; 
 
-                if (editingId) await client.from('masks').update(payload).eq('id', editingId); 
+    btn.innerText = "壓縮並上傳中... ⏳"; 
 
-                else await client.from('masks').insert([payload]); 
+ 
 
-                cancelEdit(); await loadData(); 
+    try { 
 
-            } catch (err) { alert(err.message); } finally { btn.disabled = false; } 
+        let payload = { name, price, rating, source, comment, user_name: myName }; 
+
+ 
+
+        // 如果有揀相，先進行壓縮 
+
+        if (imgFile) { 
+
+            payload.img_url = await compressImage(imgFile); 
 
         } 
+
+ 
+
+        if (editingId) { 
+
+            await client.from('masks').update(payload).eq('id', editingId); 
+
+        } else { 
+
+            await client.from('masks').insert([payload]); 
+
+        } 
+
+         
+
+        cancelEdit(); 
+
+        await loadData(); 
+
+    } catch (err) { 
+
+        alert("出錯咗： " + err.message); 
+
+    } finally { 
+
+        btn.disabled = false; 
+
+        btn.innerText = "發布評測 ☁️"; 
+
+    } 
+
+} 
+
+ 
+
+// 新增：圖片壓縮大法 📸 
+
+function compressImage(file) { 
+
+    return new Promise((resolve) => { 
+
+        const reader = new FileReader(); 
+
+        reader.readAsDataURL(file); 
+
+        reader.onload = (event) => { 
+
+            const img = new Image(); 
+
+            img.src = event.target.result; 
+
+            img.onload = () => { 
+
+                const canvas = document.createElement('canvas'); 
+
+                const MAX_WIDTH = 800; // 限制闊度，夠晒清 
+
+                let width = img.width; 
+
+                let height = img.height; 
+
+ 
+
+                if (width > MAX_WIDTH) { 
+
+                    height *= MAX_WIDTH / width; 
+
+                    width = MAX_WIDTH; 
+
+                } 
+
+ 
+
+                canvas.width = width; 
+
+                canvas.height = height; 
+
+                const ctx = canvas.getContext('2d'); 
+
+                ctx.drawImage(img, 0, 0, width, height); 
+
+                 
+
+                // 轉為 JPEG，品質 0.6 
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.6); 
+
+                resolve(dataUrl); 
+
+            }; 
+
+        }; 
+
+    }); 
+
+} 
 
  
 
