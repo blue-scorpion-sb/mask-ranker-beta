@@ -82,9 +82,11 @@
 
                 <div class="space-y-3"> 
 
-                    <p class="text-pink-400 text-sm font-bold uppercase">💰 價錢設定</p> 
+                    <p class="text-pink-400 text-sm font-bold uppercase">💰 價錢圖表上限</p> 
 
                     <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="16" oninput="renderCurrentData()"> 
+
+                    <p class="text-pink-400 text-sm font-bold uppercase">💰 價錢中線表示</p> 
 
                     <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="8" oninput="renderCurrentData()"> 
 
@@ -92,9 +94,11 @@
 
                 <div class="space-y-3"> 
 
-                    <p class="text-pink-400 text-sm font-bold uppercase">⭐ 評分設定</p> 
+                    <p class="text-pink-400 text-sm font-bold uppercase">⭐ 評分圖表上限</p> 
 
                     <input type="number" id="limitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="10" oninput="renderCurrentData()"> 
+                    
+                     <p class="text-pink-400 text-sm font-bold uppercase">⭐ 評分中線表示</p> 
 
                     <input type="number" id="splitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="5" oninput="renderCurrentData()"> 
 
@@ -605,4 +609,5 @@ function compressImageToBlob(file) {
 </body> 
 
 </html> 
+
 
