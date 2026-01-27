@@ -20,27 +20,11 @@
 
         .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.5px, transparent 1.5px); } 
 
-         
-
-        /* 基礎層級設定 */ 
-
         .outer-label { font-size: 15px; font-weight: 900; color: #f472b6; position: absolute; white-space: nowrap; z-index: 1; pointer-events: none;} 
-
-        .axis-label { font-size: 12px; font-weight: 800; color: #94a3b8; position: absolute; text-transform: uppercase; z-index: 1; pointer-events: none;} 
-
- 
-
-        /* 圖表主容器必須高過 labels */ 
 
         .chart-container { z-index: 10; position: relative; } 
 
- 
-
         .mask-node { transition: all 0.2s ease; z-index: 20; cursor: pointer; -webkit-tap-highlight-color: transparent; } 
-
-         
-
-        /* 當啟動時，層級直接衝上最高 */ 
 
         .mask-node.active-node { z-index: 999 !important; } 
 
@@ -50,7 +34,7 @@
 
         .tooltip {  
 
-            position: absolute; bottom: 135%; width: 85vw; max-width: 280px; background: rgba(15, 23, 42, 0.98);  
+            position: absolute; bottom: 135%; width: 85vw; max-width: 300px; background: rgba(15, 23, 42, 0.98);  
 
             backdrop-filter: blur(15px); color: white; padding: 1.5rem; border-radius: 1.5rem;  
 
@@ -64,11 +48,7 @@
 
         .active-node .tooltip { opacity: 1; visibility: visible; pointer-events: auto; } 
 
-         
-
-        .btn-action { pointer-events: auto; cursor: pointer; padding: 10px; font-size: 1.4rem; transition: transform 0.1s; } 
-
-        .btn-action:active { transform: scale(0.9); } 
+        .btn-action { pointer-events: auto; cursor: pointer; padding: 10px; font-size: 1.4rem; } 
 
     </style> 
 
@@ -80,17 +60,17 @@
 
     <div class="max-w-7xl mx-auto p-4 md:p-6 pt-6"> 
 
-        <header class="flex justify-between items-center mb-10 border-b-2 border-pink-200 pb-4"> 
+        <header class="flex justify-between items-center mb-8 border-b-2 border-pink-200 pb-4"> 
 
             <div class="flex items-center gap-4"> 
 
-                <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white p-3 rounded-xl shadow-sm border border-pink-100 text-2xl active:bg-pink-50">⚙️</button> 
+                <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white p-3 rounded-xl shadow-sm border border-pink-100 text-2xl">⚙️</button> 
 
                 <h1 class="text-3xl font-black text-pink-600 tracking-tighter italic">Mask Ranker <span class="text-sm font-bold text-slate-400 not-italic">beta</span></h1> 
 
             </div> 
 
-            <div id="displayUserName" class="text-xs bg-white px-4 py-2 rounded-full border border-pink-200 font-bold text-pink-500 truncate max-w-[150px]">👤 載入中...</div> 
+            <div id="displayUserName" class="text-xs bg-white px-4 py-2 rounded-full border border-pink-200 font-bold text-pink-500">👤 載入中...</div> 
 
         </header> 
 
@@ -102,9 +82,9 @@
 
                 <div class="space-y-3"> 
 
-                    <p class="text-pink-400 text-sm font-bold uppercase tracking-widest">💰 價錢上限/分界</p> 
+                    <p class="text-pink-400 text-sm font-bold uppercase">💰 價錢設定</p> 
 
-                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none focus:ring-2 ring-pink-500" value="16" oninput="renderCurrentData()"> 
+                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="16" oninput="renderCurrentData()"> 
 
                     <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="8" oninput="renderCurrentData()"> 
 
@@ -112,7 +92,7 @@
 
                 <div class="space-y-3"> 
 
-                    <p class="text-pink-400 text-sm font-bold uppercase tracking-widest">⭐ 評分上限/分界</p> 
+                    <p class="text-pink-400 text-sm font-bold uppercase">⭐ 評分設定</p> 
 
                     <input type="number" id="limitRating" class="w-full bg-white/10 rounded-xl p-3 text-lg outline-none" value="10" oninput="renderCurrentData()"> 
 
@@ -126,7 +106,7 @@
 
  
 
-        <div class="flex flex-col lg:flex-row gap-12"> 
+        <div class="flex flex-col lg:flex-row gap-10"> 
 
             <div class="lg:w-1/3 order-2 lg:order-1" onclick="event.stopPropagation()"> 
 
@@ -140,13 +120,15 @@
 
                         <div class="grid grid-cols-2 gap-4"> 
 
-                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none focus:border-pink-200 border-2 border-transparent" placeholder="💰 價錢"> 
+                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none border-2 border-transparent focus:border-pink-200" placeholder="💰 價錢"> 
 
-                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none focus:border-pink-200 border-2 border-transparent" placeholder="⭐ 評分1-10"> 
+                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none border-2 border-transparent focus:border-pink-200" placeholder="⭐ 評分1-10"> 
 
                         </div> 
 
-                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none focus:border-pink-200 border-2 border-transparent" placeholder="💬 短評 (20字)"></textarea> 
+                        <input type="text" id="mSource" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none border-2 border-transparent focus:border-pink-200" placeholder="📍 購入地點 (例如: 萬寧)"> 
+
+                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 text-lg outline-none border-2 border-transparent focus:border-pink-200" placeholder="💬 簡短評語 (20字)"></textarea> 
 
                         <input type="file" id="mImg" accept="image/*" class="text-sm w-full"> 
 
@@ -170,7 +152,7 @@
 
                 <div class="relative px-4 pt-8 pb-12"> 
 
-                    <div class="outer-label -top-1 left-6 text-red-500">💸 浪費金錢</div> 
+                    <div class="outer-label -top-1 left-6 text-red-500">💸 浪廢金錢</div> 
 
                     <div class="outer-label -top-1 right-6 text-emerald-600">💎 貴婦首選</div> 
 
@@ -206,7 +188,7 @@
 
     <script> 
 
-        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co';  
+        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co ';  
 
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo '; 
 
@@ -278,8 +260,6 @@
 
             area.innerHTML = ''; 
 
-             
-
             const limitP = parseFloat(document.getElementById('limitPrice').value) || 16; 
 
             const limitR = parseFloat(document.getElementById('limitRating').value) || 10; 
@@ -301,8 +281,6 @@
                 const x = ((m.rating - 1) / (limitR - 1)) * 100; 
 
                 const y = (1 - (m.price / limitP)) * 100; 
-
-                 
 
                 const node = document.createElement('div'); 
 
@@ -342,7 +320,7 @@
 
                             <div class="flex gap-2 shrink-0"> 
 
-                                <button onclick="startEdit(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price}, ${m.rating}, '', '${(m.comment || '').replace(/'/g, "\\'")}')" class="btn-action">✏️</button> 
+                                <button onclick="startEdit(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price}, ${m.rating}, '${(m.source || '').replace(/'/g, "\\'")}', '${(m.comment || '').replace(/'/g, "\\'")}')" class="btn-action">✏️</button> 
 
                                 <button onclick="deleteItem(${m.id}, '${m.name.replace(/'/g, "\\'")}')" class="btn-action">🗑️</button> 
 
@@ -350,11 +328,13 @@
 
                         </div> 
 
-                        <div class="grid grid-cols-2 gap-3 text-lg mb-4 border-b border-white/10 pb-3"> 
+                        <div class="grid grid-cols-3 gap-2 text-sm mb-4 border-b border-white/10 pb-3 text-center"> 
 
-                            <div><span class="text-white/40">💰</span> $${m.price}</div> 
+                            <div class="flex flex-col"><span class="text-white/40 text-[10px] uppercase font-bold">Price</span><span class="text-white font-bold">$${m.price}</span></div> 
 
-                            <div><span class="text-white/40">⭐</span> ${m.rating}/10</div> 
+                            <div class="flex flex-col"><span class="text-white/40 text-[10px] uppercase font-bold">Rating</span><span class="text-white font-bold">${m.rating}/10</span></div> 
+
+                            <div class="flex flex-col truncate"><span class="text-white/40 text-[10px] uppercase font-bold">Shop</span><span class="text-white font-bold truncate">${m.source || '-'}</span></div> 
 
                         </div> 
 
@@ -364,7 +344,7 @@
 
                         </div> 
 
-                        <p class="text-xs text-white/20 mt-4 text-right">by ${m.user_name}</p> 
+                        <p class="text-xs text-white/20 mt-4 text-right">Review by ${m.user_name}</p> 
 
                     </div> 
 
@@ -386,17 +366,19 @@
 
             const rating = parseFloat(document.getElementById('mRating').value); 
 
+            const source = document.getElementById('mSource').value; 
+
             const comment = document.getElementById('mComment').value; 
 
             const imgFile = document.getElementById('mImg').files[0]; 
 
-            if (!name || isNaN(price) || isNaN(rating)) return alert("請填好名稱、價錢同評分！💅"); 
+            if (!name || isNaN(price) || isNaN(rating)) return alert("請填寫必要資料！💅"); 
 
-            const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.innerText = "上傳中..."; 
+            const btn = document.getElementById('saveBtn'); btn.disabled = true; 
 
             try { 
 
-                let payload = { name, price, rating, comment, user_name: myName }; 
+                let payload = { name, price, rating, source, comment, user_name: myName }; 
 
                 if (imgFile) payload.img_url = await new Promise(r => { const f = new FileReader(); f.onload = e => r(e.target.result); f.readAsDataURL(imgFile); }); 
 
@@ -406,7 +388,7 @@
 
                 cancelEdit(); await loadData(); 
 
-            } catch (err) { alert(err.message); } finally { btn.disabled = false; btn.innerText = "發布評測 ☁️"; } 
+            } catch (err) { alert(err.message); } finally { btn.disabled = false; } 
 
         } 
 
@@ -426,11 +408,21 @@
 
             event.stopPropagation(); 
 
-            editingId = id; document.getElementById('mName').value = name; document.getElementById('mPrice').value = price; 
+            editingId = id;  
 
-            document.getElementById('mRating').value = rating; document.getElementById('mComment').value = comment || ''; 
+            document.getElementById('mName').value = name;  
 
-            document.getElementById('formTitle').innerText = "✏️ 編輯評測"; document.getElementById('saveBtn').innerText = "更新資料 💾"; 
+            document.getElementById('mPrice').value = price; 
+
+            document.getElementById('mRating').value = rating;  
+
+            document.getElementById('mSource').value = source || ''; 
+
+            document.getElementById('mComment').value = comment || ''; 
+
+            document.getElementById('formTitle').innerText = "✏️ 編輯評測";  
+
+            document.getElementById('saveBtn').innerText = "更新資料 💾"; 
 
             document.getElementById('cancelBtn').classList.remove('hidden'); 
 
@@ -442,9 +434,13 @@
 
         function cancelEdit() { 
 
-            editingId = null; ["mName", "mPrice", "mRating", "mComment", "mImg"].forEach(id => document.getElementById(id).value = ''); 
+            editingId = null;  
 
-            document.getElementById('formTitle').innerText = "🚀 評測面膜"; document.getElementById('saveBtn').innerText = "發布評測 ☁️"; 
+            ["mName", "mPrice", "mRating", "mSource", "mComment", "mImg"].forEach(id => document.getElementById(id).value = ''); 
+
+            document.getElementById('formTitle').innerText = "🚀 評測面膜";  
+
+            document.getElementById('saveBtn').innerText = "發布評測 ☁️"; 
 
             document.getElementById('cancelBtn').classList.add('hidden'); 
 
