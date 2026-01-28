@@ -191,19 +191,49 @@
 
  
 
-                    <div class="chart-container relative bg-white rounded-[3rem] shadow-2xl border-8 border-white aspect-square ring-4 ring-pink-100/50"> 
+                    <div class="lg:w-2/3 order-1 lg:order-2"> 
 
-                        <div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] overflow-hidden quadrant-bg"> 
+    <div class="relative px-8 pt-10 pb-16"> <div class="outer-label -top-1 left-10 text-red-500">💸 貴/難用</div> 
 
-                            <div id="yLine" class="absolute h-full w-[2px] bg-pink-400/30"></div> 
+        <div class="outer-label -top-1 right-10 text-emerald-600">💎 貴婦首選</div> 
 
-                            <div id="xLine" class="absolute w-full h-[2px] bg-pink-400/30"></div> 
+        <div class="outer-label -bottom-1 left-10 text-slate-500">💤 粗用</div> 
 
-                        </div> 
+        <div class="outer-label -bottom-1 right-10 text-blue-600">🔥 正嘢</div> 
 
-                        <div id="chartArea" class="absolute inset-0 z-30 p-6"></div> 
+ 
 
-                    </div> 
+        <div class="absolute -left-2 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-sm font-black text-slate-400 uppercase tracking-widest"> 
+
+            💰 Price / 價錢 
+
+        </div> 
+ 
+
+        <div class="chart-container relative bg-white rounded-[3rem] shadow-2xl border-8 border-white aspect-square ring-4 ring-pink-100/50"> 
+
+            <div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] overflow-hidden quadrant-bg"> 
+
+                <div id="yLine" class="absolute h-full w-[2px] bg-pink-400/30"></div> 
+
+                <div id="xLine" class="absolute w-full h-[2px] bg-pink-400/30"></div> 
+
+            </div> 
+
+            <div id="chartArea" class="absolute inset-0 z-30 p-6"></div> 
+
+        </div> 
+ 
+
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm font-black text-slate-400 uppercase tracking-widest"> 
+
+            ⭐ Rating / 評分 
+
+        </div> 
+
+    </div> 
+
+</div> 
 
                 </div> 
 
@@ -285,51 +315,52 @@
 
         function renderCurrentData() { 
 
-            const area = document.getElementById('chartArea'); 
-
-            area.innerHTML = '';     
-
-            const limitP = parseFloat(document.getElementById('limitPrice').value) || 10; 
-
-            const limitR = parseFloat(document.getElementById('limitRating').value) || 10; 
-
-            const splitP = parseFloat(document.getElementById('splitPrice').value) || 5; 
-
-            const splitR = parseFloat(document.getElementById('splitRating').value) || 5; 
-
- 
-            // 計算百分比 
-        
-            const xPct = ((splitR - 1) / (limitR - 1)) * 100; 
-        
-            const yPct = (1 - (splitP / limitP)) * 100; 
- 
-
-            // 更新背景十字線 
-        
-            document.getElementById('yLine').style.left = `${xPct}%`; 
-        
-            document.getElementById('xLine').style.top = `${yPct}%`; 
-
- 
-            // --- 修正後的 Axis Labels 位置 --- 
-        
-            area.insertAdjacentHTML('beforeend', ` 
-        
-                <div class="axis-label" style="left: ${xPct}%; bottom: -12px; transform: translateX(-50%);"> 
-        
-                    ⭐ 分界: ${splitR}分 
-        
-                </div> 
-        
-            <div class="axis-label" style="left: -12px; top: ${yPct}%; transform: translateY(-50%);"> 
+        const area = document.getElementById('chartArea'); 
     
-                💰 分界: $${splitP} 
+        area.innerHTML = ''; 
     
-            </div> 
+         
+    
+        const limitP = parseFloat(document.getElementById('limitPrice').value) || 16; 
+    
+        const limitR = parseFloat(document.getElementById('limitRating').value) || 10; 
+    
+        const splitP = parseFloat(document.getElementById('splitPrice').value) || 8; 
+    
+        const splitR = parseFloat(document.getElementById('splitRating').value) || 5; 
+    
+     
+    
+        const xPct = ((splitR - 1) / (limitR - 1)) * 100; 
+    
+        const yPct = (1 - (splitP / limitP)) * 100; 
+    
+     
+    
+        document.getElementById('yLine').style.left = `${xPct}%`; 
+    
+        document.getElementById('xLine').style.top = `${yPct}%`; 
+    
+     
+    
+        // --- 調整分界線 Label 位置 --- 
+    
+        area.insertAdjacentHTML('beforeend', ` 
+    
+            <div class="axis-label" style="left: ${xPct}%; top: -35px; transform: translateX(-50%); border-color: #f472b6; color: #f472b6;"> 
+    
+                ${splitR}分 
+    
+            </div> 
+                
+    
+            <div class="axis-label" style="left: -45px; top: ${yPct}%; transform: translateY(-50%); border-color: #f472b6; color: #f472b6;"> 
+    
+                $${splitP} 
+    
+            </div> 
 
-    `);  
-
+    `); 
             cachedData.forEach(m => { 
 
                 const x = ((m.rating - 1) / (limitR - 1)) * 100; 
@@ -659,6 +690,7 @@ function compressImageToBlob(file) {
 </body> 
 
 </html> 
+
 
 
 
