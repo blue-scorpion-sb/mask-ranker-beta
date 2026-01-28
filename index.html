@@ -11,9 +11,27 @@
 	
     <style> 
 
-        body { font-size: 1.15rem; }  
+        /* --- CSS 開始 --- */  
+
+		/* 確保 body 唔會因為圖表放大而出現雙重 scrollbar */ 
+		body { overflow-x: hidden; touch-action: pan-y; } 		 
+
+		/* 1. 隱藏圖表區域的 Scrollbar (核心!) */ 
+		#pinch-zoom-container { 
+			overflow: auto; /* 允許捲動，但隱藏條 */ 
+			-webkit-overflow-scrolling: touch; /* iOS 平滑捲動 */ 
+			/* 隱藏 Firefox scrollbar */ 
+			scrollbar-width: none;  
+		} 
+		/* 隱藏 Chrome/Safari/Edge scrollbar */ 
+		#pinch-zoom-container::-webkit-scrollbar { 
+			display: none;  
+		} 
+		
+		body { font-size: 1.15rem; }  
         .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.5px, transparent 1.5px); } 
          
+		 
         /* 四角象限標籤 */ 
         .outer-label {  
 			font-size: 1.15rem; /* 由 14px 調大到約 18px */ 
@@ -27,15 +45,10 @@
 
         /* 坐標軸標題樣式 (統一價錢同評分) */ 
         .axis-title {  
-            font-size: 0.85rem;  
-            font-weight: 900;  
-            color: #94a3b8;  
-            text-transform: uppercase;  
-            letter-spacing: 0.15em;  
-            position: absolute;  
-            white-space: nowrap; 
-            z-index: 50; /*確保在最頂層 */
-        }  
+			font-size: 0.75rem; font-weight: 900; color: #94a3b8;  
+			text-transform: uppercase; letter-spacing: 0.1em;  
+			position: absolute; white-space: nowrap; z-index: 5; 
+		} 
 		
 		/* 專門處理 Y 軸 (價錢) 旋轉 */ 
 		.y-axis-label { 
@@ -114,6 +127,32 @@
 		input, textarea { 
 			font-size: 1rem !important; 
 		} 
+		
+		/* 針對手機版 (螢幕闊度 < 768px) 的微調 */ 
+		@media (max-width: 768px) { 
+			/* 調整標籤位置，避免重疊 */ 
+			.outer-label { font-size: 0.8rem !important; } 
+			.outer-label.-top-4 { top: -2.5rem !important; } 
+			.outer-label.-bottom-2 { bottom: -2rem !important; } 
+			.y-axis-label { left: -40px !important; font-size: 0.7rem !important; } 
+			.x-axis-label { bottom: -20px !important; font-size: 0.7rem !important; } 
+			/* 確保 Tooltip 唔會被切斷 */ 
+			.tooltip { position: fixed !important; bottom: 20px !important; left: 50% !important; transform: translateX(-50%) !important; width: 90vw !important; z-index: 9999 !important; } 
+		} 
+		
+		/* 縮放功能容器 */ 
+		.zoom-scroll-container { 
+			width: 100%; 
+			overflow: auto; /* 核心：容許縮放後滾動 */ 
+			border-radius: 2.5rem; 
+			-webkit-overflow-scrolling: touch; 
+		}  
+		#chartScaleArea { 
+			transition: width 0.3s ease, height 0.3s ease; 
+			position: relative; 
+			width: 100%; /* 初始 100% */ 
+		} 
+		
 
     </style> 
 
@@ -179,28 +218,31 @@
                         </div> 
                     </div> 
                 </div> 
-            </div> 
- 
-            <div class="lg:w-2/3 order-1 lg:order-2"> 
-                <div class="relative pl-16 pr-12 pt-12 pb-16"> 
-                    <div class="outer-label -top-1 left-12 text-red-500">💸 浪費金錢</div> 
-                    <div class="outer-label -top-1 right-12 text-emerald-600">💎 貴婦首選</div> 
-                    <div class="outer-label -bottom-1 left-12 text-slate-400">💤 平價粗用</div> 
-                    <div class="outer-label -bottom-1 right-12 text-blue-600">🔥 性價比王</div>  
+            </div>  
+            
+			<div class="lg:w-2/3 order-1 lg:order-2"> 
+				<div class="relative pl-16 pr-12 pt-16 pb-20 md:pt-14 md:pb-16"> 		 
 
-                    <div class="axis-title y-axis-label">💰 Price / 價錢</div>   
+					<div class="outer-label -top-4 left-12 text-red-500">💸 浪費金錢</div> 
+					<div class="outer-label -top-4 right-12 text-emerald-600">💎 貴婦首選</div> 
+					<div class="outer-label -bottom-2 left-12 text-slate-400">💤 平價粗用</div> 
+					<div class="outer-label -bottom-2 right-12 text-blue-600">🔥 必須回購</div> 			 
 
-                    <div class="chart-container relative bg-white rounded-[3rem] shadow-2xl border-8 border-white aspect-square ring-4 ring-pink-100/50"> 
-                        <div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] quadrant-bg"> 
-                            <div id="yLine" class="absolute h-full w-[2.2px] bg-pink-400/40"></div> 
-                            <div id="xLine" class="absolute w-full h-[2.2px] bg-pink-400/40"></div> 
-                        </div> 
-                        <div id="chartArea" class="absolute inset-0 z-30 p-6"></div> 
-                    </div>  
+					<div class="axis-title y-axis-label">💰 Price / 價錢</div> 			 
 
-                    <div class="axis-title x-axis-label">⭐ Rating / 評分</div>  
-                </div> 
-            </div> 
+					<div id="pinch-zoom-container" class="relative w-full aspect-square bg-white rounded-[3rem] shadow-2xl border-8 border-white ring-4 ring-pink-100/50 overflow-hidden touch-action-none"> 			
+						<div id="chart-scale-area" class="relative w-full h-full origin-top-left" style="width: 100%; height: 100%;"> 					 
+							<div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] quadrant-bg"> 
+								<div id="yLine" class="absolute h-full w-[2.2px] bg-pink-400/40" style="pointer-events: none;"></div> 
+								<div id="xLine" class="absolute w-full h-[2.2px] bg-pink-400/40" style="pointer-events: none;"></div> 
+							</div> 					 
+							<div id="chartArea" class="absolute inset-0 z-30 p-6"></div> 
+						</div> 
+					</div> 			 
+
+					<div class="axis-title x-axis-label">⭐ Rating / 評分</div> 
+				</div> 
+			</div> 
 			
         </div> 
 
@@ -214,6 +256,66 @@
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo '; 
 		
         let client, myName = localStorage.getItem('mask_username'), cachedData = [], editingId = null; 
+		
+		// --- Pinch Zoom 核心邏輯 --- 
+
+		const zoomContainer = document.getElementById('pinch-zoom-container'); 
+		const scaleArea = document.getElementById('chartScaleArea'); 		 
+
+		let initialDistance = 0; 
+		let currentScale = 1; 
+		let isPinching = false; 
+		let startWidth = 0; 
+		let startHeight = 0; 		 
+
+		// 計算兩指間距的函數 
+		function getDistance(touches) { 
+			const dx = touches[0].clientX - touches[1].clientX; 
+			const dy = touches[0].clientY - touches[1].clientY; 
+			return Math.sqrt(dx * dx + dy * dy); 
+		} 		 
+
+		// 監聽觸控開始 
+		zoomContainer.addEventListener('touchstart', (e) => { 
+			if (e.touches.length === 2) { 
+				isPinching = true; 
+				// 記錄初始狀態 
+				initialDistance = getDistance(e.touches); 
+				startWidth = scaleArea.offsetWidth; 
+				startHeight = scaleArea.offsetHeight; 
+				// 防止瀏覽器預設縮放 
+				e.preventDefault();  
+			} 
+		}, { passive: false }); 		 
+
+		// 監聽觸控移動 (核心縮放計算) 
+		zoomContainer.addEventListener('touchmove', (e) => { 
+			if (isPinching && e.touches.length === 2) { 
+				e.preventDefault(); // 防止頁面捲動 	 
+				const newDistance = getDistance(e.touches); 
+				// 計算縮放比例 
+				const scaleFactor = newDistance / initialDistance; 		 
+				// 限制縮放範圍 (例如：最小 1倍，最大 3.5倍) 
+				let newScale = currentScale * scaleFactor; 
+				newScale = Math.max(1, Math.min(newScale, 3.5)); 	 
+				// 應用新的大小到畫布 (變相拉開距離) 
+				// 這裡很重要：我們是改變容器的物理尺寸，而不是用 CSS transform 
+				const baseSize = zoomContainer.offsetWidth; // 獲取視窗基準大小 
+				scaleArea.style.width = `${baseSize * newScale}px`; 
+				scaleArea.style.height = `${baseSize * newScale}px`; 
+			} 
+		}, { passive: false }); 		 
+
+		// 監聽觸控結束 
+		zoomContainer.addEventListener('touchend', (e) => { 
+			if (isPinching && e.touches.length < 2) { 
+				isPinching = false; 
+				// 記錄當前的縮放比例，供下次使用 
+				const baseSize = zoomContainer.offsetWidth; 
+				currentScale = scaleArea.offsetWidth / baseSize; 
+			} 
+		}); 
+		
 
         async function initApp() { 
             if (typeof supabase === 'undefined' || SB_URL.includes('YOUR_')) return; 
@@ -405,6 +507,14 @@
 
         function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); } 
         initApp(); 
+				
+		function zoomChart(val) { 
+			const container = document.getElementById('chartScaleArea'); 
+			container.style.width = val + '%'; 
+			// 保持正方形 
+			container.style.minWidth = '100%'; 
+		} 		
+	
 
     </script> 
 
