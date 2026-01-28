@@ -1,404 +1,282 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mask Ranker ✨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-size: 1rem; background: #fff5f7; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+        .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.2px, transparent 1.2px); }
 
-<html lang="zh-HK"> 
+        /* 分類標籤 */
+        .outer-label { font-size: 0.95rem; font-weight: 900; position: absolute; z-index: 40; pointer-events: none; padding: 4px 12px; border-radius: 10px; background: rgba(255,255,255,0.75); backdrop-filter: blur(4px); }
+        .label-tl { top: 1.2rem; left: 1.2rem; color: #ef4444; } /* 貴 + 低分 */
+        .label-tr { top: 1.2rem; right: 1.2rem; color: #10b981; } /* 貴 + 高分 */
+        .label-bl { bottom: 1.2rem; left: 1.2rem; color: #64748b; } /* 平 + 低分 */
+        .label-br { bottom: 1.2rem; right: 1.2rem; color: #2563eb; } /* 平 + 高分 */
 
-<head> 
+        #pinch-viewport { position: relative; overflow: hidden; touch-action: none; border-radius: 1.5rem; background: white; border: 2px solid #fee2e2; width: 100%; }
+        
+        /* Desktop Tooltip */
+        .tooltip { 
+            position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); 
+            width: 260px; background: #1e293b; color: white; padding: 1.2rem; 
+            border-radius: 1.5rem; opacity: 0; visibility: hidden; pointer-events: auto; z-index: 9999;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); transition: all 0.2s;
+        }
+        @media (min-width: 768px) {
+            .active-node .tooltip { opacity: 1; visibility: visible; }
+            .t-bottom .tooltip { bottom: auto; top: 130%; } /* 如果在頂部，向下開 */
+            .t-left .tooltip { transform: translateX(0); left: -10px; }
+            .t-right .tooltip { transform: translateX(-100%); left: calc(100% + 10px); }
+        }
+        @media (max-width: 767px) { .tooltip { display: none !important; } }
 
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
-    <title>Mask Ranker beta ✨</title> 
-    <script src="https://cdn.tailwindcss.com"></script> 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script> 
-	
-    <style> 
+        /* 手機底部抽屜 */
+        #mobileDrawer {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; color: white;
+            padding: 2.2rem 2rem; border-top-left-radius: 2.5rem; border-top-right-radius: 2.5rem;
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1);
+            z-index: 5000; box-shadow: 0 -15px 40px rgba(0,0,0,0.4);
+        }
+        #mobileDrawer.open { transform: translateY(0); }
 
-        body { font-size: 1rem; overflow-x: hidden; touch-action: pan-y; }  
-        .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.5px, transparent 1.5px); }          
+        .mask-node { cursor: pointer; z-index: 100; transition: transform 0.2s; }
+        .active-node { z-index: 500 !important; transform: scale(1.1); }
+        
+        /* 軸線裝飾 */
+        .axis-line { position: absolute; background: rgba(244, 114, 182, 0.3); pointer-events: none; }
+        .arrow-up { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid rgba(244, 114, 182, 0.5); position: absolute; top: -10px; left: -5px; }
+        .arrow-right { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid rgba(244, 114, 182, 0.5); position: absolute; right: -10px; top: -5px; }
+    </style>
+</head>
+<body onclick="closeAllTooltips()" class="p-3 md:p-8">
 
-        /* 四角象限標籤 - 調大字體並貼近框 */ 
-        .outer-label { font-size: 1.1rem; font-weight: 900; position: absolute; white-space: nowrap; z-index: 40; pointer-events: none; text-shadow: 0 0 10px white; }          
+    <div class="fixed top-5 right-5 z-[3000]">
+        <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white/90 p-3.5 rounded-2xl shadow-xl border border-pink-100 text-2xl active:scale-90 transition-transform">⚙️</button>
+    </div>
 
-        /* 坐標軸標題 */ 
-        .axis-title { font-size: 0.8rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.15em; position: absolute; white-space: nowrap; z-index: 5; } 
-        .y-axis-label { left: -35px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: center; } 
-        .x-axis-label { bottom: -25px; left: 50%; transform: translateX(-50%); } 
- 
-        /* 隱藏 Scrollbar */ 
-        #pinch-viewport { overflow: auto; scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; } 
-        #pinch-viewport::-webkit-scrollbar { display: none; }  
+    <div id="settingsPanel" class="hidden bg-slate-900 text-white p-7 rounded-[2rem] fixed right-5 top-20 z-[3001] w-72 shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-pink-400 font-black mb-5 text-sm uppercase">圖表範圍設定</h3>
+        <div class="space-y-5 text-xs text-black">
+            <div class="bg-white/5 p-4 rounded-2xl">
+                <p class="mb-2 text-white opacity-60 font-bold uppercase">💰 價錢 (MAX / 分界)</p>
+                <div class="flex gap-2">
+                    <input type="number" id="limitPrice" class="w-1/2 rounded-xl p-2 outline-none" value="12" oninput="renderCurrentData()">
+                    <input type="number" id="splitPrice" class="w-1/2 rounded-xl p-2 outline-none" value="6" oninput="renderCurrentData()">
+                </div>
+            </div>
+            <div class="bg-white/5 p-4 rounded-2xl">
+                <p class="mb-2 text-white opacity-60 font-bold uppercase">⭐ 評分 (MAX / 分界)</p>
+                <div class="flex gap-2">
+                    <input type="number" id="limitRating" class="w-1/2 rounded-xl p-2 outline-none" value="10" oninput="renderCurrentData()">
+                    <input type="number" id="splitRating" class="w-1/2 rounded-xl p-2 outline-none" value="5.5" oninput="renderCurrentData()">
+                </div>
+            </div>
+        </div>
+    </div>
 
-        /* 十字線箭頭 */ 
-        #yLine::after { content: ''; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 14px solid rgba(244, 114, 182, 0.8); } 
-        #xLine::after { content: ''; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); border-top: 7px solid transparent; border-bottom: 7px solid transparent; border-left: 14px solid rgba(244, 114, 182, 0.8); } 
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-3xl font-black text-pink-600 italic">Mask Ranker</h1>
+            <p id="displayUserName" class="text-[10px] font-bold text-pink-400 uppercase tracking-widest mt-1">👤 LOADING...</p>
+        </header>
 
-        /* --- 統一 Tooltip 樣式 --- */ 
-		.tooltip {  
-			position: absolute;  
-			bottom: 130%;  
-			left: 50%;  
-			transform: translateX(-50%);  
-			width: 260px; /* 稍微縮窄少少，增加手機版容錯率 */ 
-			background: rgba(15, 23, 42, 0.98);  
-			color: white;  
-			padding: 1.2rem;  
-			border-radius: 1.5rem;  
-			opacity: 0; 
-			visibility: hidden;  
-			pointer-events: auto;  
-			box-shadow: 0 20px 40px rgba(0,0,0,0.5);  
-			z-index: 9999; 
-			transition: opacity 0.2s, visibility 0.2s; 
-		}  
-		/* 靠近右邊：向左縮 */ 
-		.tooltip-right-align { 
-			left: auto !important; 
-			right: 0 !important; 
-			transform: translateX(10%) !important; 
-		} 	 
-		/* 靠近左邊：向右縮 */ 
-		.tooltip-left-align { 
-			left: 0 !important; 
-			transform: translateX(-10%) !important; 
-		} 		 
-		/* 靠近頂部：向下開 */ 
-		.tooltip-down { 
-			bottom: auto !important; 
-			top: 130% !important; 
-		} 		 
-		/* 手機版微調：當 active 時顯示 */ 
-		.active-node .tooltip {  
-			opacity: 1 !important;  
-			visibility: visible !important;  
-		} 
-		
+        <div class="flex flex-col lg:flex-row gap-8">
+            <div class="w-full lg:w-[350px] shrink-0 order-2 lg:order-1" onclick="event.stopPropagation()">
+                <div class="bg-white p-7 rounded-[2.5rem] shadow-xl border border-pink-50 sticky top-8">
+                    <h2 id="formTitle" class="text-xl font-black mb-6">🚀 評測面膜</h2>
+                    <div class="space-y-4">
+                        <input type="text" id="mName" class="w-full bg-slate-50 rounded-2xl p-4 outline-none border-2 border-transparent focus:border-pink-200" placeholder="🏷️ 面膜全名">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 outline-none" placeholder="💰 單片價錢">
+                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 outline-none" placeholder="⭐ 評分 1-10">
+                        </div>
+                        <input type="text" id="mSource" class="w-full bg-slate-50 rounded-2xl p-4 outline-none" placeholder="📍 購買地點">
+                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 outline-none resize-none" placeholder="💬 短評 (20字)"></textarea>
+                        
+                        <label for="mImg" class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-pink-100 rounded-2xl cursor-pointer bg-pink-50/50 overflow-hidden relative">
+                            <img id="imgPreview" class="absolute inset-0 w-full h-full object-cover hidden">
+                            <div id="uploadPrompt" class="text-center text-pink-400"><span class="text-3xl">📸</span><p class="text-[10px] font-bold mt-1 uppercase">上傳圖片</p></div>
+                            <input type="file" id="mImg" accept="image/*" class="hidden" onchange="handleImageSelect(this)">
+                        </label>
+                        <button onclick="saveData()" id="saveBtn" class="w-full bg-pink-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-lg">發布評測</button>
+                    </div>
+                </div>
+            </div>
 
-        .mask-node { transition: transform 0.2s; z-index: 100; cursor: pointer; } 
-        .active-node { z-index: 150 !important; } 
-        .tooltip { position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); width: 280px; background: rgba(15, 23, 42, 0.98); color: white; padding: 1.2rem; border-radius: 1.5rem; opacity: 0; visibility: hidden; pointer-events: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.4); } 
-        .active-node .tooltip { opacity: 1; visibility: visible; }          
+            <div class="flex-1 w-full order-1 lg:order-2">
+                <div id="pinch-viewport" class="aspect-square shadow-2xl">
+                    <div id="canvas-area" class="quadrant-bg w-full h-full relative">
+                        <div class="outer-label label-tl">💸 浪費金錢</div>
+                        <div class="outer-label label-tr">💎 貴婦首選</div>
+                        <div class="outer-label label-bl">💤 平價粗用</div>
+                        <div class="outer-label label-br">🔥 必須回購</div>
 
-        /* Placeholder 字體調細 */ 
-        input::placeholder, textarea::placeholder { font-size: 0.85rem !important; color: #cbd5e1; } 
-		
-    </style> 
+                        <div id="yLine" class="axis-line h-[calc(100%-40px)] w-[2.5px] top-[20px]"><div class="arrow-up"></div></div>
+                        <div id="xLine" class="axis-line w-[calc(100%-40px)] h-[2.5px] left-[20px]"><div class="arrow-right"></div></div>
+                        
+                        <div id="chartArea" class="absolute inset-0 p-8"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-</head> 
+    <div id="mobileDrawer">
+        <div class="w-16 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+        <div id="drawerContent"></div>
+    </div>
 
-<body class="bg-pink-50/20 min-h-screen pb-10" onclick="closeAllTooltips()"> 
- 
-    <div class="max-w-7xl mx-auto p-4 pt-6"> 
-        <header class="flex justify-between items-center mb-6 border-b border-pink-100 pb-4"> 
-            <div class="flex items-center gap-3"> 
-                <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white p-2 rounded-lg shadow-sm text-xl border">⚙️</button> 
-                <h1 class="text-2xl font-black text-pink-600 tracking-tight italic">Mask Ranker</h1> 
-            </div> 
-            <div id="displayUserName" class="text-[10px] bg-white px-3 py-1 rounded-full border border-pink-200 font-bold text-pink-500 uppercase tracking-widest">👤 LOADING...</div> 
-        </header>  
+    <script>
+        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo';
+        const client = supabase.createClient(SB_URL, SB_KEY);
 
-        <div id="settingsPanel" class="hidden bg-slate-900 text-white p-6 rounded-3xl mb-6 shadow-xl" onclick="event.stopPropagation()"> 
-            <div class="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-widest"> 
-                <div class="space-y-2"> 
-                    <p class="text-pink-400">💰 Price Max / Split</p> 
-                    <input type="number" id="limitPrice" class="w-full bg-white/10 rounded-lg p-2" value="12" oninput="renderCurrentData()"> 
-                    <input type="number" id="splitPrice" class="w-full bg-white/10 rounded-lg p-2" value="6" oninput="renderCurrentData()"> 
-                </div> 
-                <div class="space-y-2"> 
-                    <p class="text-pink-400">⭐ Rating Max / Split</p> 
-                    <input type="number" id="limitRating" class="w-full bg-white/10 rounded-lg p-2" value="10" oninput="renderCurrentData()"> 
-                    <input type="number" id="splitRating" class="w-full bg-white/10 rounded-lg p-2" value="5.5" oninput="renderCurrentData()"> 
-                </div> 
-            </div> 
-        </div>  
+        let myName = localStorage.getItem('mask_username'), cachedData = [], editingId = null;
 
-        <div class="flex flex-col xl:flex-row gap-6"> 
-            <div class="xl:w-[350px] order-2 xl:order-1" onclick="event.stopPropagation()"> 
-                <div id="inputCard" class="bg-white p-6 rounded-[2rem] shadow-lg border border-pink-100"> 
-                    <h2 id="formTitle" class="text-xl font-black mb-4 text-slate-800 italic">🚀 評測面膜</h2> 
-                    <div class="space-y-3"> 
-                        <input type="text" id="mName" class="w-full bg-slate-50 rounded-xl p-3 outline-none" placeholder="🏷️ 面膜全名"> 
-                        <div class="grid grid-cols-2 gap-2"> 
-                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-xl p-3 outline-none" placeholder="💰 單片價錢"> 
-                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-xl p-3 outline-none" placeholder="⭐ 評分 1-10"> 
-                        </div> 
-                        <input type="text" id="mSource" class="w-full bg-slate-50 rounded-xl p-3 outline-none" placeholder="📍 購入地點 (例如: 萬寧)"> 
-                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-xl p-3 outline-none" placeholder="💬 簡短評語 (20字以內)"></textarea>                          
+        // Pinch Zoom
+        const viewport = document.getElementById('pinch-viewport');
+        const canvas = document.getElementById('canvas-area');
+        let scale = 1, startDist = 0, startScale = 1;
 
-                        <div class="relative group"> 
-                            <label for="mImg" class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-pink-200 rounded-xl cursor-pointer bg-pink-50/30 hover:bg-pink-50 transition-all overflow-hidden relative"> 
-                                <img id="imgPreview" class="absolute inset-0 w-full h-full object-cover hidden"> 
-                                <div id="uploadPrompt" class="text-center"> 
-                                    <span class="text-2xl">📸</span> 
-                                    <p class="text-[10px] text-pink-500 font-bold uppercase mt-1">上傳相片</p> 
-                                </div> 
-                                <input type="file" id="mImg" accept="image/*" class="hidden" onchange="handleImageSelect(this)"> 
-                            </label> 
-                            <button id="clearImgBtn" onclick="clearImageSelection()" class="hidden absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-[10px] font-bold shadow-lg">X</button> 
-                        </div>  
+        viewport.addEventListener('touchstart', e => { if (e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); startScale = scale; } });
+        viewport.addEventListener('touchmove', e => { if (e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); scale = Math.min(Math.max(1, startScale * (dist / startDist)), 4); canvas.style.transform = `scale(${scale})`; } }, {passive: false});
 
-                        <div class="flex gap-2 pt-2"> 
-                            <button onclick="saveData()" id="saveBtn" class="flex-1 bg-pink-600 text-white font-black py-4 rounded-xl shadow-lg active:scale-95 transition-all">發布評測</button> 
-                            <button onclick="cancelEdit()" id="cancelBtn" class="hidden px-4 bg-slate-100 rounded-xl text-slate-400 font-bold">X</button> 
-                        </div> 
+        async function initApp() {
+            if (!myName) { myName = prompt("請輸入名字：") || "匿名"; localStorage.setItem('mask_username', myName); }
+            document.getElementById('displayUserName').innerText = "👤 " + myName;
+            await loadData(); setInterval(loadData, 20000);
+        }
 
-                    </div> 
-                </div> 
-            </div>  
+        async function loadData() {
+            const { data, error } = await client.from('masks').select('*').order('created_at', { ascending: false });
+            if (!error) { cachedData = data; renderCurrentData(); }
+        }
 
-            <div class="xl:flex-1 order-1 xl:order-2"> 
-                <div class="relative px-6 py-10 md:px-12 md:py-12"> 
-                    <div class="outer-label -top-2 left-6 md:left-12 text-red-500">💸 浪費金錢</div> 
-                    <div class="outer-label -top-2 right-6 md:right-12 text-emerald-600">💎 貴婦首選</div> 
-                    <div class="outer-label -bottom-2 left-6 md:left-12 text-slate-400">💤 平價粗用</div> 
-                    <div class="outer-label -bottom-2 right-6 md:right-12 text-blue-600">🔥 必須回購</div>  
+        function renderCurrentData() {
+            const area = document.getElementById('chartArea'); area.innerHTML = '';
+            const limitP = parseFloat(document.getElementById('limitPrice').value) || 12;
+            const limitR = parseFloat(document.getElementById('limitRating').value) || 10;
+            const splitP = parseFloat(document.getElementById('splitPrice').value) || 6;
+            const splitR = parseFloat(document.getElementById('splitRating').value) || 5.5;
 
-                    <div class="axis-title y-axis-label">💰 PRICE / 價錢</div>                      
+            const pad = 20;
+            const w = viewport.clientWidth - (pad * 2);
+            const h = viewport.clientHeight - (pad * 2);
 
-                    <div id="pinch-viewport" class="relative w-full aspect-square bg-white rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border-4 md:border-8 border-white ring-4 ring-pink-100/30 touch-none"> 
-                        <div id="canvas-area" class="relative w-full h-full origin-top-left"> 
-                            <div id="gridLayer" class="absolute inset-0 quadrant-bg overflow-visible"> 
-                                <div id="yLine" class="absolute h-full w-[2px] bg-pink-400/30"></div> 
-                                <div id="xLine" class="absolute w-full h-[2px] bg-pink-400/30"></div> 
-                            </div> 
-                            <div id="chartArea" class="absolute inset-0 z-10 p-4 md:p-8"></div> 
-                        </div> 
-                    </div>  
+            // 分界線位置 (Y軸同樣需要反轉計算)
+            document.getElementById('yLine').style.left = `calc(${pad}px + ${((splitR - 1) / (limitR - 1)) * w}px)`;
+            document.getElementById('xLine').style.top = `calc(${pad}px + ${(1 - (splitP / limitP)) * h}px)`;
 
-                    <div class="axis-title x-axis-label w-full text-center">⭐ RATING / 評分</div> 
-                </div> 
-            </div> 
+            cachedData.forEach(m => {
+                const xPct = ((m.rating - 1) / (limitR - 1));
+                const yPct = (m.price / limitP);
+                
+                const node = document.createElement('div');
+                
+                // 💡 修正處：y 軸改為 (1 - yPct)，令大數據在上方
+                let topPos = 10 + ((1 - yPct) * 80);
+                let leftPos = 10 + (xPct * 80);
 
-        </div> 
+                // Tooltip 方向判定
+                let sideClass = xPct > 0.6 ? "t-right" : (xPct < 0.4 ? "t-left" : "");
+                let topClass = (1 - yPct) < 0.4 ? "t-bottom" : ""; // 喺頂部時向下開
+                
+                node.className = `mask-node absolute w-11 h-11 -ml-5.5 -mt-5.5 ${sideClass} ${topClass}`;
+                node.style.left = `${leftPos}%`;
+                node.style.top = `${topPos}%`;
+                
+                node.onclick = (e) => {
+                    e.stopPropagation();
+                    closeAllTooltips();
+                    node.classList.add('active-node');
+                    if (window.innerWidth < 768) showDrawer(m);
+                };
 
-    </div> 
+                node.innerHTML = `
+                    <div class="w-full h-full rounded-2xl border-[3px] shadow-lg overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-500' : 'border-slate-100'}">
+                        ${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-200 text-xs">${m.name[0]}</div>`}
+                    </div>
+                    <div class="tooltip" onclick="event.stopPropagation()">
+                        <div class="absolute top-4 right-4 flex gap-3 text-lg">
+                            <button onclick="startEdit(${m.id}, '${m.name}', ${m.price}, ${m.rating}, '${m.source}', '${m.comment}')">✏️</button>
+                            <button onclick="deleteItem(${m.id})" class="text-red-400">🗑️</button>
+                        </div>
+                        <h3 class="font-black text-pink-400 text-lg leading-tight break-words pr-12">${m.name}</h3>
+                        <p class="text-[9px] font-bold opacity-40 mt-1 uppercase">Uploaded by ${m.user_name}</p>
+                        <div class="grid grid-cols-2 gap-4 my-4 py-3 border-y border-white/10 font-bold text-sm">
+                            <div><span class="block text-[8px] opacity-30">PRICE</span>$${m.price}</div>
+                            <div><span class="block text-[8px] opacity-30">RATING</span>${m.rating}/10</div>
+                        </div>
+                        <p class="text-[10px] opacity-30 font-bold mb-1 uppercase tracking-tighter">Location</p>
+                        <p class="text-xs mb-3 font-semibold">${m.source || '未知'}</p>
+                        <div class="bg-white/5 p-3 rounded-xl italic text-xs leading-relaxed">"${m.comment || '-'}"</div>
+                    </div>
+                `;
+                area.appendChild(node);
+            });
+        }
 
- 
+        function showDrawer(m) {
+            const drawer = document.getElementById('mobileDrawer');
+            document.getElementById('drawerContent').innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <h3 class="text-2xl font-black text-pink-400 leading-tight pr-4">${m.name}</h3>
+                    <div class="flex gap-6 text-2xl">
+                        <button onclick="startEdit(${m.id}, '${m.name}', ${m.price}, ${m.rating}, '${m.source}', '${m.comment}')">✏️</button>
+                        <button onclick="deleteItem(${m.id})" class="text-red-400">🗑️</button>
+                    </div>
+                </div>
+                <p class="text-xs font-bold opacity-40 uppercase tracking-[0.2em] -mt-4 mb-8">User: ${m.user_name}</p>
+                <div class="grid grid-cols-2 gap-5 mb-5">
+                    <div class="bg-white/5 p-5 rounded-3xl font-bold"><p class="text-[10px] opacity-30 mb-1">PRICE</p><p class="text-2xl italic">$${m.price}</p></div>
+                    <div class="bg-white/5 p-5 rounded-3xl font-bold"><p class="text-[10px] opacity-30 mb-1">RATING</p><p class="text-2xl italic">${m.rating}/10</p></div>
+                </div>
+                <div class="bg-white/5 p-5 rounded-3xl mb-5 font-bold"><p class="text-[10px] opacity-30 mb-1">LOCATION</p><p class="text-sm">${m.source || '-'}</p></div>
+                <div class="bg-pink-600/10 p-6 rounded-3xl border border-pink-500/20"><p class="italic text-base leading-relaxed">"${m.comment || '冇評語'}"</p></div>
+            `;
+            drawer.classList.add('open');
+        }
 
-    <script> 
-
-        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co'; 
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo '; 
-
-        let client, myName = localStorage.getItem('mask_username'), cachedData = [], editingId = null;  
-
-        // --- Pinch Zoom 邏輯 --- 
-        const viewport = document.getElementById('pinch-viewport'); 
-        const canvas = document.getElementById('canvas-area'); 
-        let currentScale = 1; 
-        let initialDist = 0;  
-
-        viewport.addEventListener('touchstart', e => { 
-            if (e.touches.length === 2) { 
-                initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
-            } 
-        }, {passive: false});  
-
-        viewport.addEventListener('touchmove', e => { 
-            if (e.touches.length === 2) { 
-                e.preventDefault(); 
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
-                const zoom = dist / initialDist; 
-                let newScale = Math.min(Math.max(1, currentScale * zoom), 4);                  
-
-                canvas.style.width = (newScale * 100) + '%'; 
-                canvas.style.height = (newScale * 100) + '%';                  
-
-                // 重新渲染十字線 (因為寬度變咗) 
-                renderGrid(); 
-            } 
-        }, {passive: false});  
-
-        viewport.addEventListener('touchend', e => { 
-            currentScale = parseFloat(canvas.style.width) / 100 || 1; 
-        });  
-
-        // --- 核心功能 --- 
-        async function initApp() { 
-            if (SB_URL.includes('YOUR_')) return; 
-            client = window.supabase.createClient(SB_URL, SB_KEY); 
-            if (!myName) { 
-                myName = prompt("請輸入名字：") || "匿名"; 
-                localStorage.setItem('mask_username', myName); 
-            } 
-            document.getElementById('displayUserName').innerText = "👤 " + myName; 
-            await loadData(); 
-            setInterval(loadData, 15000); 
-        }  
-
-        async function loadData() { 
-            const { data, error } = await client.from('masks').select('*').order('created_at', { ascending: false }); 
-            if (!error) { cachedData = data; renderCurrentData(); } 
-        }  
-
-        function renderGrid() { 
-            const limitP = parseFloat(document.getElementById('limitPrice').value) || 12; 
-            const limitR = parseFloat(document.getElementById('limitRating').value) || 10; 
-            const splitP = parseFloat(document.getElementById('splitPrice').value) || 5.5; 
-            const splitR = parseFloat(document.getElementById('splitRating').value) || 5; 
- 
-            const xPct = ((splitR - 1) / (limitR - 1)) * 100; 
-            const yPct = (1 - (splitP / limitP)) * 100;  
-
-            document.getElementById('yLine').style.left = `${xPct}%`; 
-            document.getElementById('xLine').style.top = `${yPct}%`; 
-        }  
-
-        function renderCurrentData() { 
-            const area = document.getElementById('chartArea'); 
-            area.innerHTML = ''; 
-            renderGrid();  
-
-            const limitP = parseFloat(document.getElementById('limitPrice').value) || 16; 
-            const limitR = parseFloat(document.getElementById('limitRating').value) || 10;  
-
-            cachedData.forEach(m => { 
-				const x = ((m.rating - 1) / (limitR - 1)) * 100; 
-				const y = (1 - (m.price / limitP)) * 100; 				 
-
-				const node = document.createElement('div'); 
-				node.className = "mask-node absolute w-12 h-12 md:w-16 md:h-16 -ml-6 -mt-6 md:-ml-8 md:-mt-8"; 
-				node.style.left = `${Math.max(5, Math.min(x, 95))}%`; 
-				node.style.top = `${Math.max(5, Math.min(y, 95))}%`; 				 
-
-				// --- 核心邏輯：判斷位置並加上對齊 Class --- 
-				let alignClass = ""; 
-				if (x > 70) alignClass = "tooltip-right-align"; // 靠近右邊界 
-				else if (x < 30) alignClass = "tooltip-left-align"; // 靠近左邊界 				 
-
-				let dirClass = ""; 
-				if (y < 25) dirClass = "tooltip-down"; // 靠近頂部 			 
-
-				node.onclick = (e) => {  
-					e.stopPropagation();  
-					const alreadyActive = node.classList.contains('active-node'); 
-					closeAllTooltips();  
-					if (!alreadyActive) node.classList.add('active-node');  
-				}; 			 
-
-				node.innerHTML = ` 
-					<div class="w-full h-full rounded-2xl border-4 shadow-lg overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-500' : 'border-indigo-400'}"> 
-						${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-200">${m.name[0]}</div>`} 
-					</div> 
-					<div class="tooltip ${alignClass} ${dirClass}" onclick="event.stopPropagation()"> 
-						<div class="flex justify-between items-start mb-2"> 
-							<div class="flex-1"> 
-								<p class="font-black text-pink-500 leading-tight text-lg">${m.name}</p> 
-								<p class="text-[9px] text-slate-400 mt-1 uppercase font-bold tracking-wider">👤 Contributor: ${m.user_name || '匿名'}</p> 
-							</div> 
-							<div class="flex gap-4 ml-2 shrink-0"> 
-								<button onclick="startEdit(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price}, ${m.rating}, '${(m.source || '').replace(/'/g, "\\'")}', '${(m.comment || '').replace(/'/g, "\\'")}')" class="text-xl">✏️</button> 
-								<button onclick="deleteItem(${m.id})" class="text-xl">🗑️</button> 
-							</div> 
-						</div> 						 
-
-						<div class="grid grid-cols-3 gap-1 my-3 py-2 border-y border-white/10 text-center"> 
-							<div><p class="text-[8px] opacity-50 uppercase">Price</p><p class="text-xs font-bold">$${m.price}</p></div> 
-							<div><p class="text-[8px] opacity-50 uppercase">Rating</p><p class="text-xs font-bold">${m.rating}/10</p></div> 
-							<div class="truncate px-1"><p class="text-[8px] opacity-50 uppercase">Shop</p><p class="text-xs font-bold truncate">${m.source || '-'}</p></div> 
-						</div> 			 
-
-						<p class="text-xs italic bg-white/5 p-3 rounded-xl border border-white/5">"${m.comment || '冇評語'}"</p> 
-					</div> 
-				`; 
-				area.appendChild(node); 
-			}); 
-        } 
-
- 
-        // --- 圖片處理 --- 
-        function handleImageSelect(input) { 
-            if (input.files && input.files[0]) { 
-                const reader = new FileReader(); 
-                reader.onload = e => { 
-                    document.getElementById('imgPreview').src = e.target.result; 
-                    document.getElementById('imgPreview').classList.remove('hidden'); 
-                    document.getElementById('uploadPrompt').classList.add('hidden'); 
-                    document.getElementById('clearImgBtn').classList.remove('hidden'); 
-                } 
-                reader.readAsDataURL(input.files[0]); 
-            } 
-        }  
-
-        function clearImageSelection() { 
-            document.getElementById('mImg').value = ""; 
-            document.getElementById('imgPreview').classList.add('hidden'); 
-            document.getElementById('uploadPrompt').classList.remove('hidden'); 
-            document.getElementById('clearImgBtn').classList.add('hidden'); 
-        }  
-
-        async function saveData() { 
-            const name = document.getElementById('mName').value; 
-            const price = parseFloat(document.getElementById('mPrice').value); 
-            const rating = parseFloat(document.getElementById('mRating').value); 
-            const source = document.getElementById('mSource').value; 
-            const comment = document.getElementById('mComment').value; 
-            const imgFile = document.getElementById('mImg').files[0];  
-
-            if (!name || isNaN(price)) return alert("填寫必填項！"); 
-            const btn = document.getElementById('saveBtn'); btn.innerText = "處理中...";  
-
-            try { 
-                let imgUrl = ""; 
-                if (imgFile) { 
-                    const blob = await compressImg(imgFile); 
-                    const fileName = `${Date.now()}.jpg`; 
-                    await client.storage.from('mask-images').upload(fileName, blob); 
-                    imgUrl = client.storage.from('mask-images').getPublicUrl(fileName).data.publicUrl; 
-                }  
-
-                const payload = { name, price, rating, source, comment, user_name: myName }; 
-                if (imgUrl) payload.img_url = imgUrl; 
-                if (editingId) await client.from('masks').update(payload).eq('id', editingId); 
-                else await client.from('masks').insert([payload]);  
-
-                cancelEdit(); loadData(); 
-            } catch (e) { alert(e.message); } finally { btn.innerText = "發布評測"; } 
-        } 
-
- 
-
-        function compressImg(file) { 
-            return new Promise(res => { 
-                const img = new Image(); img.src = URL.createObjectURL(file); 
-                img.onload = () => { 
-                    const canvas = document.createElement('canvas'); 
-                    const m = 800; let w = img.width, h = img.height; 
-                    if (w > m) { h *= m/w; w = m; } 
-                    canvas.width = w; canvas.height = h; 
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h); 
-                    canvas.toBlob(b => res(b), 'image/jpeg', 0.7); 
-                } 
-            }); 
-        }  
-
-        async function deleteItem(id) { 
-            if (confirm("確定刪除？")) { await client.from('masks').delete().eq('id', id); loadData(); } 
-        }  
+        function closeAllTooltips() { document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); document.getElementById('mobileDrawer').classList.remove('open'); }
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
+        function handleImageSelect(input) { if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('imgPreview').src = e.target.result; document.getElementById('imgPreview').classList.remove('hidden'); document.getElementById('uploadPrompt').classList.add('hidden'); }; r.readAsDataURL(input.files[0]); } }
+        
+        async function saveData() {
+            const name = document.getElementById('mName').value;
+            const price = parseFloat(document.getElementById('mPrice').value);
+            const rating = parseFloat(document.getElementById('mRating').value);
+            if (!name || isNaN(price)) return alert("請填寫必要資料");
+            const btn = document.getElementById('saveBtn'); btn.innerText = "儲存中...";
+            try {
+                let imgUrl = "";
+                const imgFile = document.getElementById('mImg').files[0];
+                if (imgFile) {
+                    const fileName = `${Date.now()}.jpg`;
+                    await client.storage.from('mask-images').upload(fileName, imgFile);
+                    imgUrl = client.storage.from('mask-images').getPublicUrl(fileName).data.publicUrl;
+                }
+                const payload = { name, price, rating, source: document.getElementById('mSource').value, comment: document.getElementById('mComment').value, user_name: myName };
+                if (imgUrl) payload.img_url = imgUrl;
+                if (editingId) await client.from('masks').update(payload).eq('id', editingId);
+                else await client.from('masks').insert([payload]);
+                location.reload();
+            } catch (e) { alert(e.message); btn.innerText = "發布"; }
+        }
 
         function startEdit(id, n, p, r, s, c) { 
-            editingId = id; 
-            document.getElementById('mName').value = n; document.getElementById('mPrice').value = p; 
+            editingId = id; document.getElementById('mName').value = n; document.getElementById('mPrice').value = p; 
             document.getElementById('mRating').value = r; document.getElementById('mSource').value = s; 
-            document.getElementById('mComment').value = c; 
-            document.getElementById('formTitle').innerText = "✏️ 編輯評測"; 
-            document.getElementById('cancelBtn').classList.remove('hidden'); 
-        } 
+            document.getElementById('mComment').value = c; document.getElementById('formTitle').innerText = "✏️ 編輯中"; 
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); 
+            closeAllTooltips(); 
+        }
 
-        function cancelEdit() { 
-            editingId = null; 
-            ["mName", "mPrice", "mRating", "mSource", "mComment", "mImg"].forEach(id => document.getElementById(id).value = ''); 
-            clearImageSelection(); 
-            document.getElementById('formTitle').innerText = "🚀 評測面膜"; 
-            document.getElementById('cancelBtn').classList.add('hidden'); 
-        }  
-
-        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); } 
-        function closeAllTooltips() { document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); } 
-         
-
-        initApp(); 
-
-    </script> 
-
-</body> 
-
-</html> 
+        async function deleteItem(id) { if (confirm("確定刪除？")) { await client.from('masks').delete().eq('id', id); location.reload(); } }
+        initApp();
+    </script>
+</body>
+</html>
