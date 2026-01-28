@@ -15,7 +15,15 @@
         .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.5px, transparent 1.5px); } 
          
         /* 四角象限標籤 */ 
-        .outer-label { font-size: 14px; font-weight: 900; position: absolute; white-space: nowrap; z-index: 5; pointer-events: none; }        
+        .outer-label {  
+			font-size: 1.15rem; /* 由 14px 調大到約 18px */ 
+			font-weight: 900;  
+			position: absolute;  
+			white-space: nowrap;  
+			z-index: 5;  
+			pointer-events: none;  
+			text-shadow: 0 0 10px rgba(255,255,255,0.8); /* 加強可讀性 */ 
+		} 
 
         /* 坐標軸標題樣式 (統一價錢同評分) */ 
         .axis-title {  
@@ -82,6 +90,30 @@
         .tooltip-down { bottom: auto; top: 135%; } 
         .active-node .tooltip { opacity: 1; visibility: visible; pointer-events: auto; } 
         .btn-action { pointer-events: auto; cursor: pointer; padding: 10px; font-size: 1.4rem; } 
+		
+		/* 上傳框 Hover 效果 */ 
+		label[for="mImg"]:hover { 
+			border-color: #ec4899; 
+			transform: translateY(-2px); 
+		} 
+		#imgPreview { 
+			z-index: 10; 
+		} 
+		#clearImgBtn { 
+			z-index: 20; 
+		} 
+		
+		/* Input Placeholder 字體 */ 
+		input::placeholder, textarea::placeholder { 
+			font-size: 0.9rem !important; /* 調細少少，確保顯示到全句 */ 
+			color: #94a3b8; 
+			font-weight: 500; 
+		}  
+
+		/* 確保 Input 內嘅字唔會太細，方便閱讀 */ 
+		input, textarea { 
+			font-size: 1rem !important; 
+		} 
 
     </style> 
 
@@ -125,7 +157,22 @@
                         </div> 
                         <input type="text" id="mSource" class="w-full bg-slate-50 rounded-2xl p-4 outline-none border-2 border-transparent focus:border-pink-200" placeholder="📍 購入地點 (例如: 萬寧)"> 
                         <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 outline-none border-2 border-transparent focus:border-pink-200" placeholder="💬 簡短評語 (20字內)"></textarea> 
-                        <input type="file" id="mImg" accept="image/*" class="text-sm w-full"> 
+                        
+						<div class="relative group"> 
+							<label for="mImg" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-pink-200 rounded-2xl cursor-pointer bg-pink-50/30 hover:bg-pink-50 transition-all overflow-hidden relative"> 
+								<img id="imgPreview" class="absolute inset-0 w-full h-full object-cover hidden">          
+
+								<div id="uploadPrompt" class="flex flex-col items-center justify-center pt-5 pb-6"> 
+									<span class="text-3xl mb-2">📸</span> 
+									<p class="text-sm text-pink-500 font-bold">上傳面膜圖片</p> 
+									<p class="text-[10px] text-slate-400 mt-1">系統會自動壓縮以節省流量</p> 
+								</div>          
+
+								<input type="file" id="mImg" accept="image/*" class="hidden" onchange="handleImageSelect(this)"> 
+							</label> 
+							<button id="clearImgBtn" onclick="clearImageSelection()" class="hidden absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs font-bold shadow-lg">X</button> 
+						</div> 
+						
                         <div class="flex gap-3 pt-2"> 
                             <button onclick="saveData()" id="saveBtn" class="flex-1 bg-indigo-950 text-white font-black py-5 rounded-2xl shadow-lg text-xl active:scale-95 transition-all">發布評測 ☁️</button> 
                             <button onclick="cancelEdit()" id="cancelBtn" class="hidden px-6 bg-slate-100 rounded-2xl font-bold text-slate-400">X</button> 
@@ -300,6 +347,38 @@
                 }; 
             }); 
         } 
+		
+		// 1. 處理相片選擇並顯示預覽 
+		function handleImageSelect(input) { 
+			const preview = document.getElementById('imgPreview'); 
+			const prompt = document.getElementById('uploadPrompt'); 
+			const clearBtn = document.getElementById('clearImgBtn'); 			 
+
+			if (input.files && input.files[0]) { 
+				const reader = new FileReader(); 
+				reader.onload = function(e) { 
+					preview.src = e.target.result; 
+					preview.classList.remove('hidden'); 
+					prompt.classList.add('opacity-0'); // 隱藏提示但保留位置 
+					clearBtn.classList.remove('hidden'); 
+				} 
+				reader.readAsDataURL(input.files[0]); 
+			} 
+		}  
+
+		// 2. 清除已選相片 
+		function clearImageSelection() { 
+			const input = document.getElementById('mImg'); 
+			const preview = document.getElementById('imgPreview'); 
+			const prompt = document.getElementById('uploadPrompt'); 
+			const clearBtn = document.getElementById('clearImgBtn'); 			 
+
+			input.value = ""; // 清空 input 
+			preview.src = ""; 
+			preview.classList.add('hidden'); 
+			prompt.classList.remove('opacity-0'); 
+			clearBtn.classList.add('hidden'); 
+		} 		
 
         async function deleteItem(id, name) { 
             event.stopPropagation(); 
@@ -318,7 +397,9 @@
 
         function cancelEdit() { 
             editingId = null; ["mName", "mPrice", "mRating", "mSource", "mComment", "mImg"].forEach(id => document.getElementById(id).value = ''); 
-            document.getElementById('formTitle').innerText = "🚀 評測面膜"; document.getElementById('saveBtn').innerText = "發布評測 ☁️"; 
+			clearImageSelection();  			
+            document.getElementById('formTitle').innerText = "🚀 評測面膜"; 
+			document.getElementById('saveBtn').innerText = "發布評測 ☁️"; 
             document.getElementById('cancelBtn').classList.add('hidden'); 
         }  
 
