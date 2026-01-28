@@ -26,8 +26,23 @@
             letter-spacing: 0.15em;  
             position: absolute;  
             white-space: nowrap; 
-            z-index: 5; 
+            z-index: 50; /*確保在最頂層 */
         }  
+		
+		/* 專門處理 Y 軸 (價錢) 旋轉 */ 
+		.y-axis-label { 
+			left: -45px; /* 向左移出圖表框 */ 
+			top: 50%; 
+			transform: translateY(-50%) rotate(-90deg); 
+			transform-origin: center; 
+		} 
+		
+		/* 專門處理 X 軸 (評分) */ 
+		.x-axis-label { 
+			bottom: 8px; 
+			left: 50%; 
+			transform: translateX(-50%); 
+		} 
 
         /* 坐標軸容器 */ 
         .chart-container { z-index: 10; position: relative; overflow: visible !important; } 
@@ -120,13 +135,13 @@
             </div> 
  
             <div class="lg:w-2/3 order-1 lg:order-2"> 
-                <div class="relative px-12 pt-12 pb-16"> 
+                <div class="relative pl-16 pr-12 pt-12 pb-16"> 
                     <div class="outer-label -top-1 left-12 text-red-500">💸 浪費金錢</div> 
                     <div class="outer-label -top-1 right-12 text-emerald-600">💎 貴婦首選</div> 
                     <div class="outer-label -bottom-1 left-12 text-slate-400">💤 平價粗用</div> 
                     <div class="outer-label -bottom-1 right-12 text-blue-600">🔥 性價比王</div>  
 
-                    <div class="axis-title" style="top: 50%; left: -10px; transform: translateY(-50%) rotate(-90deg);">💰 Price / 價錢</div>  
+                    <div class="axis-title y-axis-label">💰 Price / 價錢</div>   
 
                     <div class="chart-container relative bg-white rounded-[3rem] shadow-2xl border-8 border-white aspect-square ring-4 ring-pink-100/50"> 
                         <div id="gridLayer" class="absolute inset-0 rounded-[2.5rem] quadrant-bg"> 
@@ -136,7 +151,7 @@
                         <div id="chartArea" class="absolute inset-0 z-30 p-6"></div> 
                     </div>  
 
-                    <div class="axis-title w-full text-center" style="bottom: 8px; left: 0;">⭐ Rating / 評分</div> 
+                    <div class="axis-title x-axis-label">⭐ Rating / 評分</div>  
                 </div> 
             </div> 
 			
