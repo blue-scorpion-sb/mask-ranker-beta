@@ -20,8 +20,6 @@
 
         .quadrant-bg { background-size: 20px 20px; background-image: radial-gradient(circle, #fbcfe8 1px, transparent 1px); } 
 
- 
-
         .outer-label { font-size: 0.8rem; font-weight: 800; position: absolute; z-index: 40; pointer-events: none; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); } 
 
         .label-tl { top: 0.8rem; left: 0.8rem; color: #ef4444; border-left: 4px solid #ef4444; } 
@@ -32,39 +30,13 @@
 
         .label-br { bottom: 0.8rem; right: 0.8rem; color: #db2777; border-right: 4px solid #db2777; } 
 
- 
+        #infoDrawer { position: fixed; background: #1e293b; color: white; z-index: 5000; transition: transform 0.3s ease-out; box-shadow: 0 0 40px rgba(0,0,0,0.3); overflow-y: auto; } 
 
-        #infoDrawer { 
+        @media (max-width: 767px) { #infoDrawer { bottom: 0; left: 0; right: 0; height: 80vh; border-top-left-radius: 2rem; border-top-right-radius: 2rem; transform: translateY(100%); padding: 1.5rem; } #infoDrawer.open { transform: translateY(0); } } 
 
-            position: fixed; background: #1e293b; color: white; z-index: 5000; 
-
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 40px rgba(0,0,0,0.3); 
-
-            overflow-y: auto; 
-
-        } 
-
-        @media (max-width: 767px) { 
-
-            #infoDrawer { bottom: 0; left: 0; right: 0; height: 80vh; border-top-left-radius: 2rem; border-top-right-radius: 2rem; transform: translateY(100%); padding: 1.5rem; } 
-
-            #infoDrawer.open { transform: translateY(0); } 
-
-        } 
-
-        @media (min-width: 768px) { 
-
-            #infoDrawer { top: 0; right: 0; bottom: 0; width: 380px; transform: translateX(100%); padding: 2.5rem 2rem; } 
-
-            #infoDrawer.open { transform: translateX(0); } 
-
-        } 
-
- 
+        @media (min-width: 768px) { #infoDrawer { top: 0; right: 0; bottom: 0; width: 380px; transform: translateX(100%); padding: 2.5rem 2rem; } #infoDrawer.open { transform: translateX(0); } } 
 
         .mask-node { cursor: pointer; z-index: 100; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); } 
-
-        /* 滑鼠經過立刻置頂，解決重疊選不到的問題 */ 
 
         .mask-node:hover { z-index: 2000 !important; transform: scale(1.15); } 
 
@@ -72,27 +44,87 @@
 
         .active-node .node-inner { border: 3px solid #ec4899 !important; box-shadow: 0 0 15px rgba(236,72,153,0.5); transform: scale(1.1); } 
 
+        .axis-line { position: absolute; background: rgba(244, 114, 182, 0.3); pointer-events: none; } 
+
          
 
-        .axis-line { position: absolute; background: rgba(244, 114, 182, 0.3); pointer-events: none; } 
+        /* Setting Popup 改為從 Header 彈出 */ 
+
+        #settingsPopup { display: none; position: absolute; top: 4.5rem; right: 1.5rem; background: white; padding: 1.2rem; border-radius: 1.2rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); z-index: 3000; border: 1px solid #fee2e2; width: 220px; } 
+
+        #settingsPopup.open { display: block; animation: scaleIn 0.2s ease-out; } 
+
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9) translateY(-10px); } to { opacity: 1; transform: scale(1) translateY(0); } } 
 
     </style> 
 
 </head> 
 
-<body onclick="closeAllDrawers()" class="p-4 md:p-6"> 
+<body onclick="closeAllDrawers(); closeSettings()" class="p-4 md:p-6"> 
 
  
 
-    <div class="max-w-[1300px] mx-auto"> 
+    <div class="max-w-[1300px] mx-auto relative"> 
 
-        <header class="mb-4 flex items-baseline gap-2"> 
+        <header class="mb-4 flex items-center justify-between gap-2"> 
 
-            <h1 class="text-2xl font-black text-pink-600 italic">面膜分析大師</h1> 
+            <div class="flex items-baseline gap-2"> 
 
-            <span class="text-[10px] text-pink-400 font-bold border border-pink-200 px-1.5 rounded uppercase">Beta</span> 
+                <h1 class="text-2xl font-black text-pink-600 italic leading-none">面膜分析大師</h1> 
+
+                <span class="text-[10px] text-pink-400 font-bold border border-pink-200 px-1.5 rounded uppercase">Beta</span> 
+
+            </div> 
+
+             
+
+            <div class="flex items-center gap-2"> 
+
+                <div onclick="event.stopPropagation(); changeName()" class="bg-white/60 hover:bg-white px-3 py-2 rounded-full border border-pink-100 cursor-pointer transition-all flex items-center gap-2 group"> 
+
+                    <span class="text-[11px] font-bold text-slate-400 group-hover:text-pink-500">分析師:</span> 
+
+                    <span id="userNameDisplay" class="text-xs font-black text-pink-600">載入中...</span> 
+
+                </div> 
+
+                <button onclick="event.stopPropagation(); toggleSettings()" class="w-9 h-9 bg-white shadow-sm rounded-full flex items-center justify-center border border-pink-100 hover:border-pink-300 hover:bg-pink-50 transition-all text-lg"> 
+
+                    ⚙️ 
+
+                </button> 
+
+            </div> 
 
         </header> 
+
+ 
+
+        <div id="settingsPopup" onclick="event.stopPropagation()"> 
+
+            <p class="text-[10px] font-black text-pink-400 uppercase mb-3 tracking-widest">Chart Settings</p> 
+
+            <div class="space-y-4"> 
+
+                <div> 
+
+                    <label class="text-[10px] font-bold text-slate-400 ml-1">價格上限 (Y-Axis Max)</label> 
+
+                    <input type="number" id="setLimitP" inputmode="decimal" onchange="updateSettings()" class="w-full bg-slate-50 rounded-lg p-2.5 text-xs outline-none border border-transparent focus:border-pink-200 mt-1"> 
+
+                </div> 
+
+                <div> 
+
+                    <label class="text-[10px] font-bold text-slate-400 ml-1">平貴分割線 ($)</label> 
+
+                    <input type="number" id="setSplitP" inputmode="decimal" onchange="updateSettings()" class="w-full bg-slate-50 rounded-lg p-2.5 text-xs outline-none border border-transparent focus:border-pink-200 mt-1"> 
+
+                </div> 
+
+            </div> 
+
+        </div> 
 
  
 
@@ -110,9 +142,19 @@
 
                         <div class="grid grid-cols-2 gap-2"> 
 
-                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="💰 價錢"> 
+                            <input type="number" id="mPrice" inputmode="decimal" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="💰 價錢"> 
 
-                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="⭐ 評分"> 
+                            <select id="mRating" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none text-slate-500 appearance-none cursor-pointer"> 
+
+                                <option value="" disabled selected>⭐ 評分</option> 
+
+                                <option value="1">1 分</option><option value="2">2 分</option><option value="3">3 分</option><option value="4">4 分</option> 
+
+                                <option value="5">5 分</option><option value="6">6 分</option><option value="7">7 分</option><option value="8">8 分</option> 
+
+                                <option value="9">9 分</option><option value="10">10 分</option> 
+
+                            </select> 
 
                         </div> 
 
@@ -122,15 +164,15 @@
 
                          
 
-                        <label for="mImg" class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-pink-100 rounded-xl cursor-pointer bg-pink-50/30 overflow-hidden relative"> 
+                        <label for="mImg" class="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-pink-100 rounded-xl cursor-pointer bg-pink-50/30 overflow-hidden relative transition-colors hover:bg-pink-50"> 
 
                             <img id="imgPreview" class="absolute inset-0 w-full h-full object-cover hidden"> 
 
                             <div id="uploadPrompt" class="text-center text-pink-300"> 
 
-                                <span class="text-xl">📸</span> 
+                                <span class="text-lg">📸</span> 
 
-                                <p class="text-[9px] font-bold uppercase mt-1">上傳圖片</p> 
+                                <p class="text-[8px] font-bold uppercase">上傳圖片</p> 
 
                             </div> 
 
@@ -140,7 +182,7 @@
 
                          
 
-                        <button onclick="saveData()" id="saveBtn" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-sm">發布分析</button> 
+                        <button onclick="saveData()" id="saveBtn" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-xl shadow-md active:scale-95 transition-all text-sm">發布分析</button> 
 
                     </div> 
 
@@ -200,19 +242,31 @@
 
         const client = supabase.createClient(SB_URL, SB_KEY); 
 
- 
+        let myName = localStorage.getItem('mask_username'), cachedData = [], editingId = null; 
 
-        let myName = localStorage.getItem('mask_username'), cachedData = []; 
+        let limitP = 50, splitP = 25, isUserTuning = false; 
 
  
 
         async function initApp() { 
 
-            if (!myName) { myName = prompt("名字：") || "分析師"; localStorage.setItem('mask_username', myName); } 
+            if (!myName) { myName = prompt("分析師大名？") || "分析師" + Math.floor(Math.random()*100); localStorage.setItem('mask_username', myName); } 
+
+            document.getElementById('userNameDisplay').innerText = myName; 
 
             await loadData(); 
 
             setInterval(loadData, 20000); 
+
+        } 
+
+ 
+
+        function changeName() { 
+
+            const newName = prompt("更改名稱：", myName); 
+
+            if (newName) { myName = newName; localStorage.setItem('mask_username', myName); document.getElementById('userNameDisplay').innerText = myName; renderCurrentData(); } 
 
         } 
 
@@ -226,11 +280,17 @@
 
                 cachedData = data; 
 
-                const maxPrice = data.length > 0 ? Math.max(...data.map(m => m.price), 1) : 50; 
+                if (!isUserTuning && data.length > 0) { 
 
-                window.limitP = Math.ceil(maxPrice); 
+                    limitP = Math.ceil(Math.max(...data.map(m => m.price), 1)); 
 
-                window.splitP = window.limitP / 2; 
+                    splitP = limitP / 2; 
+
+                    document.getElementById('setLimitP').value = limitP; 
+
+                    document.getElementById('setSplitP').value = Math.round(splitP); 
+
+                } 
 
                 renderCurrentData(); 
 
@@ -240,55 +300,35 @@
 
  
 
+        function toggleSettings() { document.getElementById('settingsPopup').classList.toggle('open'); } 
+
+        function closeSettings() { document.getElementById('settingsPopup').classList.remove('open'); } 
+
+        function updateSettings() { isUserTuning = true; limitP = parseFloat(document.getElementById('setLimitP').value) || 50; splitP = parseFloat(document.getElementById('setSplitP').value) || 25; renderCurrentData(); } 
+
+ 
+
         function renderCurrentData() { 
 
             const area = document.getElementById('chartArea'); area.innerHTML = ''; 
 
-            const lp = window.limitP, lr = 10; 
-
- 
-
             cachedData.forEach((m, idx) => { 
 
-                const xBase = 10 + (((m.rating - 1) / (lr - 1)) * 80); 
+                const xBase = 10 + (((m.rating - 1) / 9) * 80); 
 
-                const yBase = 10 + ((1 - (m.price / lp)) * 80); 
-
-                 
-
-                // 【核心改動】加大隨機偏移量 (Jittering) 到 5%，確保點跟點之間自然錯開 
+                const yBase = 10 + ((1 - (m.price / limitP)) * 80); 
 
                 const jitterX = (Math.random() - 0.5) * 5; 
 
                 const jitterY = (Math.random() - 0.5) * 5; 
 
- 
-
                 const node = document.createElement('div'); 
 
                 node.className = `mask-node absolute w-10 h-10 md:w-11 md:h-11 -ml-5 -mt-5 md:-ml-5.5 md:-mt-5.5`; 
 
-                node.style.left = `${xBase + jitterX}%`; 
+                node.style.left = `${xBase + jitterX}%`; node.style.top = `${yBase + jitterY}%`; node.style.zIndex = 100 + idx; 
 
-                node.style.top = `${yBase + jitterY}%`; 
-
-                node.style.zIndex = 100 + idx; 
-
-                 
-
-                node.onclick = (e) => { 
-
-                    e.stopPropagation(); 
-
-                    document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); 
-
-                    node.classList.add('active-node'); 
-
-                    showInfo(m); 
-
-                }; 
-
- 
+                node.onclick = (e) => { e.stopPropagation(); document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); node.classList.add('active-node'); showInfo(m); }; 
 
                 node.innerHTML = `<div class="node-inner w-full h-full rounded-xl border-2 shadow-sm overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-500' : 'border-slate-100'}"> 
 
@@ -308,17 +348,11 @@
 
         function updateAxis() { 
 
-            const lp = window.limitP, lr = 10, sp = window.splitP, sr = 5; 
+            const pad = 20, w = viewport.clientWidth - (pad * 2), h = viewport.clientHeight - (pad * 2); 
 
-            const pad = 20; 
+            document.getElementById('yLine').style.left = `calc(${pad}px + ${4/9 * w}px)`; 
 
-            const w = viewport.clientWidth - (pad * 2); 
-
-            const h = viewport.clientHeight - (pad * 2); 
-
-            document.getElementById('yLine').style.left = `calc(${pad}px + ${((sr - 1) / (lr - 1)) * w}px)`; 
-
-            document.getElementById('xLine').style.top = `calc(${pad}px + ${(1 - (sp / lp)) * h}px)`; 
+            document.getElementById('xLine').style.top = `calc(${pad}px + ${(1 - (splitP / limitP)) * h}px)`; 
 
         } 
 
@@ -350,29 +384,19 @@
 
                 </div> 
 
-                <p class="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-6">By ${m.user_name}</p> 
+                <p class="text-[10px] font-bold opacity-30 uppercase mb-6 px-1">By ${m.user_name}</p> 
 
                 <div class="grid grid-cols-2 gap-3 mb-4 text-white"> 
 
-                    <div class="bg-white/5 p-4 rounded-2xl"><p class="text-[9px] opacity-30 mb-1 uppercase tracking-tighter">價錢</p><p class="text-2xl font-black italic">$${m.price}</p></div> 
+                    <div class="bg-white/5 p-4 rounded-2xl"><p class="text-[9px] opacity-30 mb-1 uppercase font-bold tracking-tighter">價錢</p><p class="text-2xl font-black italic text-pink-50">$${m.price}</p></div> 
 
-                    <div class="bg-white/5 p-4 rounded-2xl"><p class="text-[9px] opacity-30 mb-1 uppercase tracking-tighter">評分</p><p class="text-2xl font-black italic">${m.rating}/10</p></div> 
-
-                </div> 
-
-                <div class="bg-white/5 p-4 rounded-2xl mb-4 text-sm"> 
-
-                    <p class="text-[9px] opacity-30 mb-1 uppercase font-bold tracking-widest">購入地點</p> 
-
-                    <p>📍 ${m.source || '-'}</p> 
+                    <div class="bg-white/5 p-4 rounded-2xl"><p class="text-[9px] opacity-30 mb-1 uppercase font-bold tracking-tighter">評分</p><p class="text-2xl font-black italic text-pink-50">${m.rating}/10</p></div> 
 
                 </div> 
 
-                <div class="bg-pink-600/10 p-5 rounded-2xl border border-pink-500/10"> 
+                <div class="bg-white/5 p-4 rounded-2xl mb-4 text-sm"><p class="text-[9px] opacity-30 mb-1 uppercase font-bold tracking-widest">購入地點</p><p class="font-medium text-pink-50">📍 ${m.source || '-'}</p></div> 
 
-                    <p class="italic text-sm text-pink-50 leading-relaxed">"${m.comment || '暫無評價。'}"</p> 
-
-                </div> 
+                <div class="bg-pink-600/10 p-5 rounded-2xl border border-pink-500/10"><p class="italic text-sm text-pink-50 leading-relaxed">"${m.comment || '無評價。'}"</p></div> 
 
             `; 
 
@@ -384,37 +408,23 @@
 
         const viewport = document.getElementById('pinch-viewport'); 
 
-        function closeAllDrawers() {  
-
-            document.getElementById('infoDrawer').classList.remove('open');  
-
-            document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); 
-
-        } 
+        function closeAllDrawers() { document.getElementById('infoDrawer').classList.remove('open'); document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); } 
 
         function handleImageSelect(input) { if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('imgPreview').src = e.target.result; document.getElementById('imgPreview').classList.remove('hidden'); document.getElementById('uploadPrompt').classList.add('hidden'); }; r.readAsDataURL(input.files[0]); } } 
 
         async function saveData() { 
 
-            const name = document.getElementById('mName').value; 
+            const name = document.getElementById('mName').value, price = parseFloat(document.getElementById('mPrice').value), rating = parseInt(document.getElementById('mRating').value); 
 
-            const price = parseFloat(document.getElementById('mPrice').value); 
-
-            const rating = parseFloat(document.getElementById('mRating').value); 
-
-            if (!name || isNaN(price)) return alert("請輸入完整資料"); 
+            if (!name || isNaN(price) || isNaN(rating)) return alert("請填寫名稱、價格及評分"); 
 
             try { 
 
-                let imgUrl = ""; 
-
-                const imgFile = document.getElementById('mImg').files[0]; 
+                let imgUrl = ""; const imgFile = document.getElementById('mImg').files[0]; 
 
                 if (imgFile) { 
 
-                    const fileName = `${Date.now()}.jpg`; 
-
-                    await client.storage.from('mask-images').upload(fileName, imgFile); 
+                    const fileName = `${Date.now()}.jpg`; await client.storage.from('mask-images').upload(fileName, imgFile); 
 
                     imgUrl = client.storage.from('mask-images').getPublicUrl(fileName).data.publicUrl; 
 
@@ -430,11 +440,11 @@
 
                 location.reload(); 
 
-            } catch (e) { alert("錯誤"); } 
+            } catch (e) { alert("儲存失敗"); } 
 
         } 
 
-        function startEdit(id, n, p, r, s, c) { editingId = id; document.getElementById('mName').value = n; document.getElementById('mPrice').value = p; document.getElementById('mRating').value = r; document.getElementById('mSource').value = s; document.getElementById('mComment').value = c; document.getElementById('formTitle').innerText = "✏️ 修正資料"; closeAllDrawers(); } 
+        function startEdit(id, n, p, r, s, c) { editingId = id; document.getElementById('mName').value = n; document.getElementById('mPrice').value = p; document.getElementById('mRating').value = r; document.getElementById('mSource').value = s; document.getElementById('mComment').value = c; document.getElementById('formTitle').innerText = "✏️ 修正紀錄"; closeAllDrawers(); window.scrollTo(0,0); } 
 
         async function deleteItem(id) { if (confirm("確定刪除？")) { await client.from('masks').delete().eq('id', id); location.reload(); } } 
 
