@@ -1,282 +1,447 @@
-<!DOCTYPE html>
-<html lang="zh-HK">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mask Ranker ✨</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-size: 1rem; background: #fff5f7; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
-        .quadrant-bg { background-size: 25px 25px; background-image: radial-gradient(circle, #fbcfe8 1.2px, transparent 1.2px); }
+<!DOCTYPE html> 
 
-        /* 分類標籤 */
-        .outer-label { font-size: 0.95rem; font-weight: 900; position: absolute; z-index: 40; pointer-events: none; padding: 4px 12px; border-radius: 10px; background: rgba(255,255,255,0.75); backdrop-filter: blur(4px); }
-        .label-tl { top: 1.2rem; left: 1.2rem; color: #ef4444; } /* 貴 + 低分 */
-        .label-tr { top: 1.2rem; right: 1.2rem; color: #10b981; } /* 貴 + 高分 */
-        .label-bl { bottom: 1.2rem; left: 1.2rem; color: #64748b; } /* 平 + 低分 */
-        .label-br { bottom: 1.2rem; right: 1.2rem; color: #2563eb; } /* 平 + 高分 */
+<html lang="zh-HK"> 
 
-        #pinch-viewport { position: relative; overflow: hidden; touch-action: none; border-radius: 1.5rem; background: white; border: 2px solid #fee2e2; width: 100%; }
-        
-        /* Desktop Tooltip */
-        .tooltip { 
-            position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); 
-            width: 260px; background: #1e293b; color: white; padding: 1.2rem; 
-            border-radius: 1.5rem; opacity: 0; visibility: hidden; pointer-events: auto; z-index: 9999;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); transition: all 0.2s;
-        }
-        @media (min-width: 768px) {
-            .active-node .tooltip { opacity: 1; visibility: visible; }
-            .t-bottom .tooltip { bottom: auto; top: 130%; } /* 如果在頂部，向下開 */
-            .t-left .tooltip { transform: translateX(0); left: -10px; }
-            .t-right .tooltip { transform: translateX(-100%); left: calc(100% + 10px); }
-        }
-        @media (max-width: 767px) { .tooltip { display: none !important; } }
+<head> 
 
-        /* 手機底部抽屜 */
-        #mobileDrawer {
-            position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; color: white;
-            padding: 2.2rem 2rem; border-top-left-radius: 2.5rem; border-top-right-radius: 2.5rem;
-            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0, 0, 0.2, 1);
-            z-index: 5000; box-shadow: 0 -15px 40px rgba(0,0,0,0.4);
-        }
-        #mobileDrawer.open { transform: translateY(0); }
+    <meta charset="UTF-8"> 
 
-        .mask-node { cursor: pointer; z-index: 100; transition: transform 0.2s; }
-        .active-node { z-index: 500 !important; transform: scale(1.1); }
-        
-        /* 軸線裝飾 */
-        .axis-line { position: absolute; background: rgba(244, 114, 182, 0.3); pointer-events: none; }
-        .arrow-up { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid rgba(244, 114, 182, 0.5); position: absolute; top: -10px; left: -5px; }
-        .arrow-right { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 10px solid rgba(244, 114, 182, 0.5); position: absolute; right: -10px; top: -5px; }
-    </style>
-</head>
-<body onclick="closeAllTooltips()" class="p-3 md:p-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> 
 
-    <div class="fixed top-5 right-5 z-[3000]">
-        <button onclick="event.stopPropagation(); toggleSettings()" class="bg-white/90 p-3.5 rounded-2xl shadow-xl border border-pink-100 text-2xl active:scale-90 transition-transform">⚙️</button>
-    </div>
+    <title>面膜分析大師 ✨</title> 
 
-    <div id="settingsPanel" class="hidden bg-slate-900 text-white p-7 rounded-[2rem] fixed right-5 top-20 z-[3001] w-72 shadow-2xl" onclick="event.stopPropagation()">
-        <h3 class="text-pink-400 font-black mb-5 text-sm uppercase">圖表範圍設定</h3>
-        <div class="space-y-5 text-xs text-black">
-            <div class="bg-white/5 p-4 rounded-2xl">
-                <p class="mb-2 text-white opacity-60 font-bold uppercase">💰 價錢 (MAX / 分界)</p>
-                <div class="flex gap-2">
-                    <input type="number" id="limitPrice" class="w-1/2 rounded-xl p-2 outline-none" value="12" oninput="renderCurrentData()">
-                    <input type="number" id="splitPrice" class="w-1/2 rounded-xl p-2 outline-none" value="6" oninput="renderCurrentData()">
-                </div>
-            </div>
-            <div class="bg-white/5 p-4 rounded-2xl">
-                <p class="mb-2 text-white opacity-60 font-bold uppercase">⭐ 評分 (MAX / 分界)</p>
-                <div class="flex gap-2">
-                    <input type="number" id="limitRating" class="w-1/2 rounded-xl p-2 outline-none" value="10" oninput="renderCurrentData()">
-                    <input type="number" id="splitRating" class="w-1/2 rounded-xl p-2 outline-none" value="5.5" oninput="renderCurrentData()">
-                </div>
-            </div>
-        </div>
-    </div>
+    <script src="https://cdn.tailwindcss.com"></script> 
 
-    <div class="max-w-7xl mx-auto">
-        <header class="mb-6">
-            <h1 class="text-3xl font-black text-pink-600 italic">Mask Ranker</h1>
-            <p id="displayUserName" class="text-[10px] font-bold text-pink-400 uppercase tracking-widest mt-1">👤 LOADING...</p>
-        </header>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script> 
 
-        <div class="flex flex-col lg:flex-row gap-8">
-            <div class="w-full lg:w-[350px] shrink-0 order-2 lg:order-1" onclick="event.stopPropagation()">
-                <div class="bg-white p-7 rounded-[2.5rem] shadow-xl border border-pink-50 sticky top-8">
-                    <h2 id="formTitle" class="text-xl font-black mb-6">🚀 評測面膜</h2>
-                    <div class="space-y-4">
-                        <input type="text" id="mName" class="w-full bg-slate-50 rounded-2xl p-4 outline-none border-2 border-transparent focus:border-pink-200" placeholder="🏷️ 面膜全名">
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-2xl p-4 outline-none" placeholder="💰 單片價錢">
-                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-2xl p-4 outline-none" placeholder="⭐ 評分 1-10">
-                        </div>
-                        <input type="text" id="mSource" class="w-full bg-slate-50 rounded-2xl p-4 outline-none" placeholder="📍 購買地點">
-                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-2xl p-4 outline-none resize-none" placeholder="💬 短評 (20字)"></textarea>
-                        
-                        <label for="mImg" class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-pink-100 rounded-2xl cursor-pointer bg-pink-50/50 overflow-hidden relative">
-                            <img id="imgPreview" class="absolute inset-0 w-full h-full object-cover hidden">
-                            <div id="uploadPrompt" class="text-center text-pink-400"><span class="text-3xl">📸</span><p class="text-[10px] font-bold mt-1 uppercase">上傳圖片</p></div>
-                            <input type="file" id="mImg" accept="image/*" class="hidden" onchange="handleImageSelect(this)">
-                        </label>
-                        <button onclick="saveData()" id="saveBtn" class="w-full bg-pink-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-lg">發布評測</button>
-                    </div>
-                </div>
-            </div>
+    <style> 
 
-            <div class="flex-1 w-full order-1 lg:order-2">
-                <div id="pinch-viewport" class="aspect-square shadow-2xl">
-                    <div id="canvas-area" class="quadrant-bg w-full h-full relative">
-                        <div class="outer-label label-tl">💸 浪費金錢</div>
-                        <div class="outer-label label-tr">💎 貴婦首選</div>
-                        <div class="outer-label label-bl">💤 平價粗用</div>
-                        <div class="outer-label label-br">🔥 必須回購</div>
+        body { font-size: 14px; background: #fff5f7; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; } 
 
-                        <div id="yLine" class="axis-line h-[calc(100%-40px)] w-[2.5px] top-[20px]"><div class="arrow-up"></div></div>
-                        <div id="xLine" class="axis-line w-[calc(100%-40px)] h-[2.5px] left-[20px]"><div class="arrow-right"></div></div>
-                        
-                        <div id="chartArea" class="absolute inset-0 p-8"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        .quadrant-bg { background-size: 20px 20px; background-image: radial-gradient(circle, #fbcfe8 1px, transparent 1px); } 
 
-    <div id="mobileDrawer">
-        <div class="w-16 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
-        <div id="drawerContent"></div>
-    </div>
+ 
 
-    <script>
-        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co';
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo';
-        const client = supabase.createClient(SB_URL, SB_KEY);
+        .outer-label { font-size: 0.8rem; font-weight: 800; position: absolute; z-index: 40; pointer-events: none; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); } 
 
-        let myName = localStorage.getItem('mask_username'), cachedData = [], editingId = null;
+        .label-tl { top: 0.8rem; left: 0.8rem; color: #ef4444; border-left: 4px solid #ef4444; } 
 
-        // Pinch Zoom
-        const viewport = document.getElementById('pinch-viewport');
-        const canvas = document.getElementById('canvas-area');
-        let scale = 1, startDist = 0, startScale = 1;
+        .label-tr { top: 0.8rem; right: 0.8rem; color: #8b5cf6; border-right: 4px solid #8b5cf6; } 
 
-        viewport.addEventListener('touchstart', e => { if (e.touches.length === 2) { startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); startScale = scale; } });
-        viewport.addEventListener('touchmove', e => { if (e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); scale = Math.min(Math.max(1, startScale * (dist / startDist)), 4); canvas.style.transform = `scale(${scale})`; } }, {passive: false});
+        .label-bl { bottom: 0.8rem; left: 0.8rem; color: #64748b; border-left: 4px solid #64748b; } 
 
-        async function initApp() {
-            if (!myName) { myName = prompt("請輸入名字：") || "匿名"; localStorage.setItem('mask_username', myName); }
-            document.getElementById('displayUserName').innerText = "👤 " + myName;
-            await loadData(); setInterval(loadData, 20000);
-        }
+        .label-br { bottom: 0.8rem; right: 0.8rem; color: #db2777; border-right: 4px solid #db2777; } 
 
-        async function loadData() {
-            const { data, error } = await client.from('masks').select('*').order('created_at', { ascending: false });
-            if (!error) { cachedData = data; renderCurrentData(); }
-        }
+ 
 
-        function renderCurrentData() {
-            const area = document.getElementById('chartArea'); area.innerHTML = '';
-            const limitP = parseFloat(document.getElementById('limitPrice').value) || 12;
-            const limitR = parseFloat(document.getElementById('limitRating').value) || 10;
-            const splitP = parseFloat(document.getElementById('splitPrice').value) || 6;
-            const splitR = parseFloat(document.getElementById('splitRating').value) || 5.5;
+        #infoDrawer { 
 
-            const pad = 20;
-            const w = viewport.clientWidth - (pad * 2);
-            const h = viewport.clientHeight - (pad * 2);
+            position: fixed; background: #1e293b; color: white; z-index: 5000; 
 
-            // 分界線位置 (Y軸同樣需要反轉計算)
-            document.getElementById('yLine').style.left = `calc(${pad}px + ${((splitR - 1) / (limitR - 1)) * w}px)`;
-            document.getElementById('xLine').style.top = `calc(${pad}px + ${(1 - (splitP / limitP)) * h}px)`;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 40px rgba(0,0,0,0.3); 
 
-            cachedData.forEach(m => {
-                const xPct = ((m.rating - 1) / (limitR - 1));
-                const yPct = (m.price / limitP);
-                
-                const node = document.createElement('div');
-                
-                // 💡 修正處：y 軸改為 (1 - yPct)，令大數據在上方
-                let topPos = 10 + ((1 - yPct) * 80);
-                let leftPos = 10 + (xPct * 80);
+            overflow-y: auto; 
 
-                // Tooltip 方向判定
-                let sideClass = xPct > 0.6 ? "t-right" : (xPct < 0.4 ? "t-left" : "");
-                let topClass = (1 - yPct) < 0.4 ? "t-bottom" : ""; // 喺頂部時向下開
-                
-                node.className = `mask-node absolute w-11 h-11 -ml-5.5 -mt-5.5 ${sideClass} ${topClass}`;
-                node.style.left = `${leftPos}%`;
-                node.style.top = `${topPos}%`;
-                
-                node.onclick = (e) => {
-                    e.stopPropagation();
-                    closeAllTooltips();
-                    node.classList.add('active-node');
-                    if (window.innerWidth < 768) showDrawer(m);
-                };
+        } 
 
-                node.innerHTML = `
-                    <div class="w-full h-full rounded-2xl border-[3px] shadow-lg overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-500' : 'border-slate-100'}">
-                        ${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-black text-slate-200 text-xs">${m.name[0]}</div>`}
-                    </div>
-                    <div class="tooltip" onclick="event.stopPropagation()">
-                        <div class="absolute top-4 right-4 flex gap-3 text-lg">
-                            <button onclick="startEdit(${m.id}, '${m.name}', ${m.price}, ${m.rating}, '${m.source}', '${m.comment}')">✏️</button>
-                            <button onclick="deleteItem(${m.id})" class="text-red-400">🗑️</button>
-                        </div>
-                        <h3 class="font-black text-pink-400 text-lg leading-tight break-words pr-12">${m.name}</h3>
-                        <p class="text-[9px] font-bold opacity-40 mt-1 uppercase">Uploaded by ${m.user_name}</p>
-                        <div class="grid grid-cols-2 gap-4 my-4 py-3 border-y border-white/10 font-bold text-sm">
-                            <div><span class="block text-[8px] opacity-30">PRICE</span>$${m.price}</div>
-                            <div><span class="block text-[8px] opacity-30">RATING</span>${m.rating}/10</div>
-                        </div>
-                        <p class="text-[10px] opacity-30 font-bold mb-1 uppercase tracking-tighter">Location</p>
-                        <p class="text-xs mb-3 font-semibold">${m.source || '未知'}</p>
-                        <div class="bg-white/5 p-3 rounded-xl italic text-xs leading-relaxed">"${m.comment || '-'}"</div>
-                    </div>
-                `;
-                area.appendChild(node);
-            });
-        }
+        @media (max-width: 767px) { 
 
-        function showDrawer(m) {
-            const drawer = document.getElementById('mobileDrawer');
-            document.getElementById('drawerContent').innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <h3 class="text-2xl font-black text-pink-400 leading-tight pr-4">${m.name}</h3>
-                    <div class="flex gap-6 text-2xl">
-                        <button onclick="startEdit(${m.id}, '${m.name}', ${m.price}, ${m.rating}, '${m.source}', '${m.comment}')">✏️</button>
-                        <button onclick="deleteItem(${m.id})" class="text-red-400">🗑️</button>
-                    </div>
-                </div>
-                <p class="text-xs font-bold opacity-40 uppercase tracking-[0.2em] -mt-4 mb-8">User: ${m.user_name}</p>
-                <div class="grid grid-cols-2 gap-5 mb-5">
-                    <div class="bg-white/5 p-5 rounded-3xl font-bold"><p class="text-[10px] opacity-30 mb-1">PRICE</p><p class="text-2xl italic">$${m.price}</p></div>
-                    <div class="bg-white/5 p-5 rounded-3xl font-bold"><p class="text-[10px] opacity-30 mb-1">RATING</p><p class="text-2xl italic">${m.rating}/10</p></div>
-                </div>
-                <div class="bg-white/5 p-5 rounded-3xl mb-5 font-bold"><p class="text-[10px] opacity-30 mb-1">LOCATION</p><p class="text-sm">${m.source || '-'}</p></div>
-                <div class="bg-pink-600/10 p-6 rounded-3xl border border-pink-500/20"><p class="italic text-base leading-relaxed">"${m.comment || '冇評語'}"</p></div>
-            `;
-            drawer.classList.add('open');
-        }
+            #infoDrawer { bottom: 0; left: 0; right: 0; height: 80vh; border-top-left-radius: 2rem; border-top-right-radius: 2rem; transform: translateY(100%); padding: 1.5rem; } 
 
-        function closeAllTooltips() { document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); document.getElementById('mobileDrawer').classList.remove('open'); }
-        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('hidden'); }
-        function handleImageSelect(input) { if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('imgPreview').src = e.target.result; document.getElementById('imgPreview').classList.remove('hidden'); document.getElementById('uploadPrompt').classList.add('hidden'); }; r.readAsDataURL(input.files[0]); } }
-        
-        async function saveData() {
-            const name = document.getElementById('mName').value;
-            const price = parseFloat(document.getElementById('mPrice').value);
-            const rating = parseFloat(document.getElementById('mRating').value);
-            if (!name || isNaN(price)) return alert("請填寫必要資料");
-            const btn = document.getElementById('saveBtn'); btn.innerText = "儲存中...";
-            try {
-                let imgUrl = "";
-                const imgFile = document.getElementById('mImg').files[0];
-                if (imgFile) {
-                    const fileName = `${Date.now()}.jpg`;
-                    await client.storage.from('mask-images').upload(fileName, imgFile);
-                    imgUrl = client.storage.from('mask-images').getPublicUrl(fileName).data.publicUrl;
-                }
-                const payload = { name, price, rating, source: document.getElementById('mSource').value, comment: document.getElementById('mComment').value, user_name: myName };
-                if (imgUrl) payload.img_url = imgUrl;
-                if (editingId) await client.from('masks').update(payload).eq('id', editingId);
-                else await client.from('masks').insert([payload]);
-                location.reload();
-            } catch (e) { alert(e.message); btn.innerText = "發布"; }
-        }
+            #infoDrawer.open { transform: translateY(0); } 
 
-        function startEdit(id, n, p, r, s, c) { 
-            editingId = id; document.getElementById('mName').value = n; document.getElementById('mPrice').value = p; 
-            document.getElementById('mRating').value = r; document.getElementById('mSource').value = s; 
-            document.getElementById('mComment').value = c; document.getElementById('formTitle').innerText = "✏️ 編輯中"; 
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); 
-            closeAllTooltips(); 
-        }
+        } 
 
-        async function deleteItem(id) { if (confirm("確定刪除？")) { await client.from('masks').delete().eq('id', id); location.reload(); } }
-        initApp();
-    </script>
-</body>
-</html>
+        @media (min-width: 768px) { 
+
+            #infoDrawer { top: 0; right: 0; bottom: 0; width: 380px; transform: translateX(100%); padding: 2.5rem 2rem; } 
+
+            #infoDrawer.open { transform: translateX(0); } 
+
+        } 
+
+ 
+
+        .mask-node { cursor: pointer; z-index: 100; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); } 
+
+        /* 滑鼠經過立刻置頂，解決重疊選不到的問題 */ 
+
+        .mask-node:hover { z-index: 2000 !important; transform: scale(1.15); } 
+
+        .active-node { z-index: 2100 !important; } 
+
+        .active-node .node-inner { border: 3px solid #ec4899 !important; box-shadow: 0 0 15px rgba(236,72,153,0.5); transform: scale(1.1); } 
+
+         
+
+        .axis-line { position: absolute; background: rgba(244, 114, 182, 0.3); pointer-events: none; } 
+
+    </style> 
+
+</head> 
+
+<body onclick="closeAllDrawers()" class="p-4 md:p-6"> 
+
+ 
+
+    <div class="max-w-[1300px] mx-auto"> 
+
+        <header class="mb-4 flex items-baseline gap-2"> 
+
+            <h1 class="text-2xl font-black text-pink-600 italic">面膜分析大師</h1> 
+
+            <span class="text-[10px] text-pink-400 font-bold border border-pink-200 px-1.5 rounded uppercase">Beta</span> 
+
+        </header> 
+
+ 
+
+        <div class="flex flex-col lg:flex-row gap-4 items-start"> 
+
+            <div class="w-full lg:w-[300px] shrink-0 order-2 lg:order-1" onclick="event.stopPropagation()"> 
+
+                <div class="bg-white p-5 rounded-[1.8rem] shadow-lg border border-pink-50 sticky top-6"> 
+
+                    <h2 id="formTitle" class="text-lg font-black mb-4 text-slate-800">🚀 評測面膜</h2> 
+
+                    <div class="space-y-3"> 
+
+                        <input type="text" id="mName" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none border-2 border-transparent focus:border-pink-200" placeholder="🏷️ 面膜名稱"> 
+
+                        <div class="grid grid-cols-2 gap-2"> 
+
+                            <input type="number" id="mPrice" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="💰 價錢"> 
+
+                            <input type="number" id="mRating" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="⭐ 評分"> 
+
+                        </div> 
+
+                        <input type="text" id="mSource" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none" placeholder="📍 購入地點"> 
+
+                        <textarea id="mComment" maxlength="20" rows="1" class="w-full bg-slate-50 rounded-xl p-3 text-sm outline-none resize-none" placeholder="💬 短評 (20字)"></textarea> 
+
+                         
+
+                        <label for="mImg" class="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-pink-100 rounded-xl cursor-pointer bg-pink-50/30 overflow-hidden relative"> 
+
+                            <img id="imgPreview" class="absolute inset-0 w-full h-full object-cover hidden"> 
+
+                            <div id="uploadPrompt" class="text-center text-pink-300"> 
+
+                                <span class="text-xl">📸</span> 
+
+                                <p class="text-[9px] font-bold uppercase mt-1">上傳圖片</p> 
+
+                            </div> 
+
+                            <input type="file" id="mImg" accept="image/*" class="hidden" onchange="handleImageSelect(this)"> 
+
+                        </label> 
+
+                         
+
+                        <button onclick="saveData()" id="saveBtn" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl shadow-md active:scale-95 transition-all text-sm">發布分析</button> 
+
+                    </div> 
+
+                </div> 
+
+            </div> 
+
+ 
+
+            <div class="flex-1 w-full order-1 lg:order-2"> 
+
+                <div id="pinch-viewport" class="aspect-square max-h-[78vh] shadow-xl overflow-hidden rounded-[1.8rem] bg-white border-4 border-white relative"> 
+
+                    <div id="canvas-area" class="quadrant-bg w-full h-full relative"> 
+
+                        <div class="outer-label label-tl">💸 浪費金錢</div> 
+
+                        <div class="outer-label label-tr">💎 貴婦之選</div> 
+
+                        <div class="outer-label label-bl">💤 平價粗用</div> 
+
+                        <div class="outer-label label-br">✨ 必須回購</div> 
+
+                        <div id="yLine" class="axis-line h-[calc(100%-40px)] w-[2px] top-[20px]"></div> 
+
+                        <div id="xLine" class="axis-line w-[calc(100%-40px)] h-[2px] left-[20px]"></div> 
+
+                        <div id="chartArea" class="absolute inset-0 p-8 md:p-12"></div> 
+
+                    </div> 
+
+                </div> 
+
+            </div> 
+
+        </div> 
+
+    </div> 
+
+ 
+
+    <div id="infoDrawer" onclick="event.stopPropagation()"> 
+
+        <button onclick="closeAllDrawers()" class="absolute top-5 right-5 text-white/50 hover:text-white text-xl">✕</button> 
+
+        <div id="drawerContent"></div> 
+
+    </div> 
+
+ 
+
+    <script> 
+
+        const SB_URL = 'https://ayulzvrljioqcfoqrsev.supabase.co'; 
+
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dWx6dnJsamlvcWNmb3Fyc2V2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNzk3MzUsImV4cCI6MjA4NDk1NTczNX0.3iCIGRfR42cg12qoE5IUHb0EFn1yq9dDqAW-jcFmQDo'; 
+
+        const client = supabase.createClient(SB_URL, SB_KEY); 
+
+ 
+
+        let myName = localStorage.getItem('mask_username'), cachedData = []; 
+
+ 
+
+        async function initApp() { 
+
+            if (!myName) { myName = prompt("名字：") || "分析師"; localStorage.setItem('mask_username', myName); } 
+
+            await loadData(); 
+
+            setInterval(loadData, 20000); 
+
+        } 
+
+ 
+
+        async function loadData() { 
+
+            const { data, error } = await client.from('masks').select('*').order('created_at', { ascending: false }); 
+
+            if (!error) { 
+
+                cachedData = data; 
+
+                const maxPrice = data.length > 0 ? Math.max(...data.map(m => m.price), 1) : 50; 
+
+                window.limitP = Math.ceil(maxPrice); 
+
+                window.splitP = window.limitP / 2; 
+
+                renderCurrentData(); 
+
+            } 
+
+        } 
+
+ 
+
+        function renderCurrentData() { 
+
+            const area = document.getElementById('chartArea'); area.innerHTML = ''; 
+
+            const lp = window.limitP, lr = 10; 
+
+ 
+
+            cachedData.forEach((m, idx) => { 
+
+                const xBase = 10 + (((m.rating - 1) / (lr - 1)) * 80); 
+
+                const yBase = 10 + ((1 - (m.price / lp)) * 80); 
+
+                 
+
+                // 【核心改動】加大隨機偏移量 (Jittering) 到 5%，確保點跟點之間自然錯開 
+
+                const jitterX = (Math.random() - 0.5) * 5; 
+
+                const jitterY = (Math.random() - 0.5) * 5; 
+
+ 
+
+                const node = document.createElement('div'); 
+
+                node.className = `mask-node absolute w-10 h-10 md:w-11 md:h-11 -ml-5 -mt-5 md:-ml-5.5 md:-mt-5.5`; 
+
+                node.style.left = `${xBase + jitterX}%`; 
+
+                node.style.top = `${yBase + jitterY}%`; 
+
+                node.style.zIndex = 100 + idx; 
+
+                 
+
+                node.onclick = (e) => { 
+
+                    e.stopPropagation(); 
+
+                    document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); 
+
+                    node.classList.add('active-node'); 
+
+                    showInfo(m); 
+
+                }; 
+
+ 
+
+                node.innerHTML = `<div class="node-inner w-full h-full rounded-xl border-2 shadow-sm overflow-hidden bg-white ${m.user_name === myName ? 'border-pink-500' : 'border-slate-100'}"> 
+
+                    ${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center font-bold text-slate-200 text-[10px]">${m.name[0]}</div>`} 
+
+                </div>`; 
+
+                area.appendChild(node); 
+
+            }); 
+
+            updateAxis(); 
+
+        } 
+
+ 
+
+        function updateAxis() { 
+
+            const lp = window.limitP, lr = 10, sp = window.splitP, sr = 5; 
+
+            const pad = 20; 
+
+            const w = viewport.clientWidth - (pad * 2); 
+
+            const h = viewport.clientHeight - (pad * 2); 
+
+            document.getElementById('yLine').style.left = `calc(${pad}px + ${((sr - 1) / (lr - 1)) * w}px)`; 
+
+            document.getElementById('xLine').style.top = `calc(${pad}px + ${(1 - (sp / lp)) * h}px)`; 
+
+        } 
+
+ 
+
+        function showInfo(m) { 
+
+            const drawer = document.getElementById('infoDrawer'); 
+
+            document.getElementById('drawerContent').innerHTML = ` 
+
+                <div class="w-full aspect-square rounded-2xl overflow-hidden bg-slate-800 mb-6 shadow-lg"> 
+
+                    ${m.img_url ? `<img src="${m.img_url}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-4xl opacity-10">📸</div>`} 
+
+                </div> 
+
+                <div class="flex justify-between items-start mb-1"> 
+
+                    <h3 class="text-xl font-black text-pink-400 leading-tight">${m.name}</h3> 
+
+                    <div class="flex gap-4 text-lg"> 
+
+                        <button onclick="startEdit(${m.id}, '${m.name.replace(/'/g, "\\'")}', ${m.price}, ${m.rating}, '${m.source}', '${m.comment}')">✏️</button> 
+
+                        <button onclick="deleteItem(${m.id})" class="text-red-400">🗑️</button> 
+
+                    </div> 
+
+                </div> 
+
+                <p class="text-[10px] font-bold opacity-30 uppercase tracking-widest mb-6">By ${m.user_name}</p> 
+
+                <div class="grid grid-cols-2 gap-3 mb-4 text-white"> 
+
+                    <div class="bg-white/5 p-4 rounded-2xl"><p class="text-[9px] opacity-30 mb-1 uppercase tracking-tighter">價錢</p><p class="text-2xl font-black italic">$${m.price}</p></div> 
+
+                    <div class="bg-white/5 p-4 rounded-2xl"><p class="text-[9px] opacity-30 mb-1 uppercase tracking-tighter">評分</p><p class="text-2xl font-black italic">${m.rating}/10</p></div> 
+
+                </div> 
+
+                <div class="bg-white/5 p-4 rounded-2xl mb-4 text-sm"> 
+
+                    <p class="text-[9px] opacity-30 mb-1 uppercase font-bold tracking-widest">購入地點</p> 
+
+                    <p>📍 ${m.source || '-'}</p> 
+
+                </div> 
+
+                <div class="bg-pink-600/10 p-5 rounded-2xl border border-pink-500/10"> 
+
+                    <p class="italic text-sm text-pink-50 leading-relaxed">"${m.comment || '暫無評價。'}"</p> 
+
+                </div> 
+
+            `; 
+
+            drawer.classList.add('open'); 
+
+        } 
+
+ 
+
+        const viewport = document.getElementById('pinch-viewport'); 
+
+        function closeAllDrawers() {  
+
+            document.getElementById('infoDrawer').classList.remove('open');  
+
+            document.querySelectorAll('.mask-node').forEach(n => n.classList.remove('active-node')); 
+
+        } 
+
+        function handleImageSelect(input) { if (input.files && input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('imgPreview').src = e.target.result; document.getElementById('imgPreview').classList.remove('hidden'); document.getElementById('uploadPrompt').classList.add('hidden'); }; r.readAsDataURL(input.files[0]); } } 
+
+        async function saveData() { 
+
+            const name = document.getElementById('mName').value; 
+
+            const price = parseFloat(document.getElementById('mPrice').value); 
+
+            const rating = parseFloat(document.getElementById('mRating').value); 
+
+            if (!name || isNaN(price)) return alert("請輸入完整資料"); 
+
+            try { 
+
+                let imgUrl = ""; 
+
+                const imgFile = document.getElementById('mImg').files[0]; 
+
+                if (imgFile) { 
+
+                    const fileName = `${Date.now()}.jpg`; 
+
+                    await client.storage.from('mask-images').upload(fileName, imgFile); 
+
+                    imgUrl = client.storage.from('mask-images').getPublicUrl(fileName).data.publicUrl; 
+
+                } 
+
+                const p = { name, price, rating, source: document.getElementById('mSource').value, comment: document.getElementById('mComment').value, user_name: myName }; 
+
+                if (imgUrl) p.img_url = imgUrl; 
+
+                if (editingId) await client.from('masks').update(p).eq('id', editingId); 
+
+                else await client.from('masks').insert([p]); 
+
+                location.reload(); 
+
+            } catch (e) { alert("錯誤"); } 
+
+        } 
+
+        function startEdit(id, n, p, r, s, c) { editingId = id; document.getElementById('mName').value = n; document.getElementById('mPrice').value = p; document.getElementById('mRating').value = r; document.getElementById('mSource').value = s; document.getElementById('mComment').value = c; document.getElementById('formTitle').innerText = "✏️ 修正資料"; closeAllDrawers(); } 
+
+        async function deleteItem(id) { if (confirm("確定刪除？")) { await client.from('masks').delete().eq('id', id); location.reload(); } } 
+
+        initApp(); 
+
+    </script> 
+
+</body> 
+
+</html> 
